@@ -7,7 +7,12 @@
 #include <unordered_map>
 #include <mutex>
 #include <shared_mutex>
-
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include <cstdarg>
+#include <ctime>
+#include <iomanip>
 
 #include "raftRPC.pb.h"
 #include "raftRPC.grpc.pb.h"
@@ -37,21 +42,52 @@ namespace moczkrin
     public:
         VoteState m_voteState;
         int m_id = -1;
-        int m_term = -1;
+        int m_currentTerm = -1;
         std::string m_ip;
         std::string m_port;
 
+        // vote and state
+        enum Status
+        {
+            Follower,
+            Candidate,
+            Leader
+        };
+        Status m_status = Follower;
+
+        int m_votedFor;
+        // vote and state
+
+        //  persisted logs' term and index
+        int m_lastSnapshotIncludeIndex = 0;
+        int m_lastSnapshotIncludeTerm = 0;
+
+        //  log collections
+        std::vector<raftRpcProctoc::LogEntry> m_logs; //// 日志条目数组，包含了状态机要执行的指令集，以及收到领导时的任期号
+
+        // log 同步用
+        std::vector<int> m_nextIndex; // 这两个状态的下标1开始，因为通常commitIndex和lastApplied从0开始，应该是一个无效的index，因此下标从1开始
+        std::vector<int> m_matchIndex;
+
+        // time association
+        std::chrono::system_clock::time_point m_lastResetElectionTime;
+
         // RaftNode calls peers' service
-        std::unordered_map<std::string, std::unique_ptr<raftRpcProctoc::raftRpc::Stub>> m_peers;
+        std::vector<std::unique_ptr<raftRpcProctoc::raftRpc::Stub>> m_peers;
 
         // RaftNode's listening interface
         std::unique_ptr<grpc::Server> m_serverInterface;
 
-
     public:
         void leaderHearBeatTicker();
+        void doHeartBeat();
+
         void electionTimeOutTicker();
         void doElection();
+        bool sendRequestVote(int peer_idx, raftRpcProctoc::RequestVoteArgs *args,
+                             raftRpcProctoc::RequestVoteReply *reply, int *votedNum);
+
+        bool containsNewLog(int index, int term);
         void listening()
         {
             if (!m_serverInterface)
@@ -64,7 +100,18 @@ namespace moczkrin
 
         RaftService() {};
         void init(std::string ip, std::string port);
+
         bool addPeer(std::string ip, std::string port);
+
+    private:
+        std::chrono::milliseconds getRandomizedElectionTimeout()
+        {
+            std::random_device rd;
+            std::mt19937 rng(rd());
+            std::uniform_int_distribution<int> dist(minRandomizedElectionTime, maxRandomizedElectionTime);
+
+            return std::chrono::milliseconds(dist(rng));
+        }
     };
 
 }
