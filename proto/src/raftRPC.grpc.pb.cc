@@ -20,11 +20,12 @@
 #include <grpcpp/impl/service_type.h>
 #include <grpcpp/support/sync_stream.h>
 #include <grpcpp/ports_def.inc>
+namespace raftRpcProctoc {
 
 static const char* raftRpc_method_names[] = {
-  "/raftRpc/AppendEntries",
-  "/raftRpc/InstallSnapshot",
-  "/raftRpc/RequestVote",
+  "/raftRpcProctoc.raftRpc/AppendEntries",
+  "/raftRpcProctoc.raftRpc/InstallSnapshot",
+  "/raftRpcProctoc.raftRpc/RequestVote",
 };
 
 std::unique_ptr< raftRpc::Stub> raftRpc::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -39,69 +40,69 @@ raftRpc::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, c
   , rpcmethod_RequestVote_(raftRpc_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
-::grpc::Status raftRpc::Stub::AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::AppendEntriesReply* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::AppendEntriesArgs, ::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AppendEntries_, context, request, response);
+::grpc::Status raftRpc::Stub::AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::raftRpcProctoc::AppendEntriesReply* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_AppendEntries_, context, request, response);
 }
 
-void raftRpc::Stub::async::AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::AppendEntriesArgs, ::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AppendEntries_, context, request, response, std::move(f));
+void raftRpc::Stub::async::AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AppendEntries_, context, request, response, std::move(f));
 }
 
-void raftRpc::Stub::async::AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) {
+void raftRpc::Stub::async::AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) {
   ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_AppendEntries_, context, request, response, reactor);
 }
 
-::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>* raftRpc::Stub::PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::AppendEntriesReply, ::AppendEntriesArgs, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AppendEntries_, context, request);
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>* raftRpc::Stub::PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::raftRpcProctoc::AppendEntriesReply, ::raftRpcProctoc::AppendEntriesArgs, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_AppendEntries_, context, request);
 }
 
-::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>* raftRpc::Stub::AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>* raftRpc::Stub::AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncAppendEntriesRaw(context, request, cq);
   result->StartCall();
   return result;
 }
 
-::grpc::Status raftRpc::Stub::InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::InstallSnapshotResponse* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::InstallSnapshotRequest, ::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_InstallSnapshot_, context, request, response);
+::grpc::Status raftRpc::Stub::InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::raftRpcProctoc::InstallSnapshotResponse* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_InstallSnapshot_, context, request, response);
 }
 
-void raftRpc::Stub::async::InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::InstallSnapshotRequest, ::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_InstallSnapshot_, context, request, response, std::move(f));
+void raftRpc::Stub::async::InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_InstallSnapshot_, context, request, response, std::move(f));
 }
 
-void raftRpc::Stub::async::InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) {
+void raftRpc::Stub::async::InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) {
   ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_InstallSnapshot_, context, request, response, reactor);
 }
 
-::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>* raftRpc::Stub::PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::InstallSnapshotResponse, ::InstallSnapshotRequest, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_InstallSnapshot_, context, request);
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>* raftRpc::Stub::PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::raftRpcProctoc::InstallSnapshotResponse, ::raftRpcProctoc::InstallSnapshotRequest, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_InstallSnapshot_, context, request);
 }
 
-::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>* raftRpc::Stub::AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>* raftRpc::Stub::AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncInstallSnapshotRaw(context, request, cq);
   result->StartCall();
   return result;
 }
 
-::grpc::Status raftRpc::Stub::RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::RequestVoteReply* response) {
-  return ::grpc::internal::BlockingUnaryCall< ::RequestVoteArgs, ::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_RequestVote_, context, request, response);
+::grpc::Status raftRpc::Stub::RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::raftRpcProctoc::RequestVoteReply* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_RequestVote_, context, request, response);
 }
 
-void raftRpc::Stub::async::RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, std::function<void(::grpc::Status)> f) {
-  ::grpc::internal::CallbackUnaryCall< ::RequestVoteArgs, ::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RequestVote_, context, request, response, std::move(f));
+void raftRpc::Stub::async::RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RequestVote_, context, request, response, std::move(f));
 }
 
-void raftRpc::Stub::async::RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) {
+void raftRpc::Stub::async::RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) {
   ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_RequestVote_, context, request, response, reactor);
 }
 
-::grpc::ClientAsyncResponseReader< ::RequestVoteReply>* raftRpc::Stub::PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
-  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::RequestVoteReply, ::RequestVoteArgs, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_RequestVote_, context, request);
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>* raftRpc::Stub::PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::raftRpcProctoc::RequestVoteReply, ::raftRpcProctoc::RequestVoteArgs, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_RequestVote_, context, request);
 }
 
-::grpc::ClientAsyncResponseReader< ::RequestVoteReply>* raftRpc::Stub::AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>* raftRpc::Stub::AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
   auto* result =
     this->PrepareAsyncRequestVoteRaw(context, request, cq);
   result->StartCall();
@@ -112,31 +113,31 @@ raftRpc::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       raftRpc_method_names[0],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::AppendEntriesArgs, ::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](raftRpc::Service* service,
              ::grpc::ServerContext* ctx,
-             const ::AppendEntriesArgs* req,
-             ::AppendEntriesReply* resp) {
+             const ::raftRpcProctoc::AppendEntriesArgs* req,
+             ::raftRpcProctoc::AppendEntriesReply* resp) {
                return service->AppendEntries(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       raftRpc_method_names[1],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::InstallSnapshotRequest, ::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](raftRpc::Service* service,
              ::grpc::ServerContext* ctx,
-             const ::InstallSnapshotRequest* req,
-             ::InstallSnapshotResponse* resp) {
+             const ::raftRpcProctoc::InstallSnapshotRequest* req,
+             ::raftRpcProctoc::InstallSnapshotResponse* resp) {
                return service->InstallSnapshot(ctx, req, resp);
              }, this)));
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       raftRpc_method_names[2],
       ::grpc::internal::RpcMethod::NORMAL_RPC,
-      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::RequestVoteArgs, ::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+      new ::grpc::internal::RpcMethodHandler< raftRpc::Service, ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
           [](raftRpc::Service* service,
              ::grpc::ServerContext* ctx,
-             const ::RequestVoteArgs* req,
-             ::RequestVoteReply* resp) {
+             const ::raftRpcProctoc::RequestVoteArgs* req,
+             ::raftRpcProctoc::RequestVoteReply* resp) {
                return service->RequestVote(ctx, req, resp);
              }, this)));
 }
@@ -144,25 +145,28 @@ raftRpc::Service::Service() {
 raftRpc::Service::~Service() {
 }
 
-::grpc::Status raftRpc::Service::AppendEntries(::grpc::ServerContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response) {
+::grpc::Status raftRpc::Service::AppendEntries(::grpc::ServerContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response) {
   (void) context;
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
-::grpc::Status raftRpc::Service::InstallSnapshot(::grpc::ServerContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response) {
+::grpc::Status raftRpc::Service::InstallSnapshot(::grpc::ServerContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response) {
   (void) context;
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
-::grpc::Status raftRpc::Service::RequestVote(::grpc::ServerContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response) {
+::grpc::Status raftRpc::Service::RequestVote(::grpc::ServerContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response) {
   (void) context;
   (void) request;
   (void) response;
   return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
 }
 
+
+}  // namespace raftRpcProctoc
+#include <grpcpp/ports_undef.inc>
 

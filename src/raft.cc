@@ -1,54 +1,84 @@
 #include "raft.h"
-
-using ::AppendEntriesArgs;
-using ::AppendEntriesReply;
-using ::LogEntry;
-using ::RequestVoteArgs;
-using ::RequestVoteReply;
+#include <algorithm>
+#include <stdexcept>
+#include <string>
 
 namespace moczkrin
 {
-
-    ::grpc::Status RaftService::AppendEntries(::grpc::ServerContext *context,
-                                              const ::AppendEntriesArgs *request,
-                                              ::AppendEntriesReply *response)
+    
+    void RaftService::init(std::string ip, std::string port)
     {
+        m_ip = ip;
+        m_port = port;
+        m_voteState = Normal;
+        assert(m_serverInterface == nullptr);
 
+        grpc::ServerBuilder builder;
+        builder.AddListeningPort(m_ip + ":" + m_port, grpc::InsecureServerCredentials());
+
+        builder.RegisterService(this);
+
+        m_serverInterface = builder.BuildAndStart();
+        if (!m_serverInterface)
+        {
+            throw std::runtime_error("failed to start gRPC server on " + m_ip + ":" + m_port);
+        }
+    }
+
+    bool RaftService::addPeer(std::string ip, std::string port)
+    {
+        std::string ip_port_ = ip + ":" + port;
+        if (ip.compare(m_ip) == 0 && port.compare(m_port) == 0)
+        {
+            std::cout << "添加服务器地址为本地地址" << std::endl;
+            return false;
+        }
+
+        if (m_peers.find(ip_port_) != m_peers.end())
+        {
+            return true;
+        }
+
+        std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(ip_port_, grpc::InsecureChannelCredentials());
+        std::unique_ptr<raftRpcProctoc::raftRpc::Stub> stub = raftRpcProctoc::raftRpc::NewStub(channel);
+        m_peers.insert({ip_port_, std::move(stub)});
+
+        return true;
+    }
+
+    grpc::Status RaftService::AppendEntries(::grpc::ServerContext *context,
+                                            const ::raftRpcProctoc::AppendEntriesArgs *request,
+                                            ::raftRpcProctoc::AppendEntriesReply *response)
+    {
+        response->set_term(m_term);
         return grpc::Status::OK;
     }
 
-    ::grpc::Status RaftService::InstallSnapshot(::grpc::ServerContext *context,
-                                                const ::InstallSnapshotRequest *request,
-                                                ::InstallSnapshotResponse *response)
+    grpc::Status RaftService::InstallSnapshot(::grpc::ServerContext *context, const ::raftRpcProctoc::InstallSnapshotRequest *request, ::raftRpcProctoc::InstallSnapshotResponse *response)
     {
+        response->set_term(m_term);
+        return grpc::Status::OK;
+    }
+    grpc::Status RaftService::RequestVote(::grpc::ServerContext *context, const ::raftRpcProctoc::RequestVoteArgs *request, ::raftRpcProctoc::RequestVoteReply *response)
+    {
+        response->set_term(m_term);
         return grpc::Status::OK;
     }
 
-    grpc::Status RaftService::RequestVote(::grpc::ServerContext *context,
-                                          const RequestVoteArgs *request,
-                                          RequestVoteReply *response)
-    {
-        return grpc::Status::OK;
-    }
-
-    void RaftService::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me)
-    {
-        this->m_peers = peers;
-        m_id = me;
-
-        m_ioManager->scheduleLock([this]() -> void
-                                  { this->leaderHearBeatTicker(); })
-    }
 
     void RaftService::leaderHearBeatTicker()
     {
-        while (true)
-        {
-            for(const auto& stub: m_peers)
-            {
-                stub->AppendEntries()
-            }
-        }
+
+    }
+
+    void RaftService::electionTimeOutTicker()
+    {
+        
+    }
+
+    void RaftService::doElection()
+    {
+
     }
 
 }; // RaftService

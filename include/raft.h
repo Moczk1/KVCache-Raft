@@ -1,78 +1,70 @@
 #pragma once
-#include "raftRPC.pb.h"
-#include "raftRPC.grpc.pb.h"
-#include "raftRpcUtil.h"
-#include "grpcpp/grpcpp.h"
+#include <iostream>
+#include <cstdio>
 #include <mutex>
 #include <vector>
-#include "ioscheduler.h"
+#include <memory>
+#include <unordered_map>
+#include <mutex>
+#include <shared_mutex>
+
+
+#include "raftRPC.pb.h"
+#include "raftRPC.grpc.pb.h"
+#include "grpcpp/grpcpp.h"
 
 namespace moczkrin
 {
 
-    ///////////////投票状态
-    constexpr int Killed = 0;
-    constexpr int Voted = 1;  // 本轮已经投过票了
-    constexpr int Expire = 2; // 投票（消息、竞选者）过期
-    constexpr int Normal = 3;
-
-    class RaftService : public raftRpc::Service
+    class RaftService : public raftRpcProctoc::raftRpc::Service
     {
+    public:
+        grpc::Status AppendEntries(::grpc::ServerContext *context, const ::raftRpcProctoc::AppendEntriesArgs *request, ::raftRpcProctoc::AppendEntriesReply *response) override;
+        grpc::Status InstallSnapshot(::grpc::ServerContext *context, const ::raftRpcProctoc::InstallSnapshotRequest *request, ::raftRpcProctoc::InstallSnapshotResponse *response) override;
+        grpc::Status RequestVote(::grpc::ServerContext *context, const ::raftRpcProctoc::RequestVoteArgs *request, ::raftRpcProctoc::RequestVoteReply *response) override;
+
     private:
-        std::mutex m_mutex;
-        std::vector<std::shared_ptr<RaftRpcUtil>> m_peers;
-        int m_id;
-        int m_currentTerm;
-        int m_votedFor;
-
-        std::vector<LogEntry> m_logs;
-
-        int m_commitIndex;
-        int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
-
-        // 这两个状态是由服务器来维护，易失
-        std::vector<int> m_nextIndex;
-        std::vector<int> m_matchIndex; // 这两个状态的下标1开始，因为通常commitIndex和lastApplied从0开始，应该是一个无效的index，因此下标从1开始
-
-        enum Status
+        enum VoteState
+        ///////////////投票状态
         {
-            Follower,
-            Candidate,
-            Leader
+            Killed = 0,
+            Voted = 1,
+            Expire = 2,
+            Normal = 3
         };
-        Status m_status;
-
-        // 选举超时
-        std::chrono::_V2::system_clock::time_point m_lastResetElectionTime;
-        // 心跳超时，用于leader
-        std::chrono::_V2::system_clock::time_point m_lastResetHearBeatTime;
-
-
-        // // 2D中用于传入快照点
-        // // 储存了快照中的最后一个日志的Index和Term
-        // int m_lastSnapshotIncludeIndex;
-        // int m_lastSnapshotIncludeTerm;
-
-        std::unique_ptr<moczkrin::IOManager> m_ioManager = nullptr;
-    
+        std::shared_mutex m_mutex;
 
     public:
+        VoteState m_voteState;
+        int m_id = -1;
+        int m_term = -1;
+        std::string m_ip;
+        std::string m_port;
 
-        void leaderHearBeatTicker() ;
+        // RaftNode calls peers' service
+        std::unordered_map<std::string, std::unique_ptr<raftRpcProctoc::raftRpc::Stub>> m_peers;
 
-        ::grpc::Status AppendEntries(::grpc::ServerContext *context,
-                                     const ::AppendEntriesArgs *request,
-                                     ::AppendEntriesReply *response) override;
-        ::grpc::Status InstallSnapshot(::grpc::ServerContext *context,
-                                       const ::InstallSnapshotRequest *request,
-                                       ::InstallSnapshotResponse *response) override;
+        // RaftNode's listening interface
+        std::unique_ptr<grpc::Server> m_serverInterface;
 
-        grpc::Status RequestVote(::grpc::ServerContext *context,
-                                 const RequestVoteArgs *request,
-                                 RequestVoteReply *response) override;
-        
-        
-        void init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me);
 
-    }; // RaftService
+    public:
+        void leaderHearBeatTicker();
+        void electionTimeOutTicker();
+        void doElection();
+        void listening()
+        {
+            if (!m_serverInterface)
+            {
+                std::cerr << "gRPC server has not been started" << std::endl;
+                return;
+            }
+            m_serverInterface->Wait();
+        };
+
+        RaftService() {};
+        void init(std::string ip, std::string port);
+        bool addPeer(std::string ip, std::string port);
+    };
+
 }

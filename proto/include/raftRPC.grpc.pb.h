@@ -26,90 +26,92 @@
 #include <grpcpp/support/sync_stream.h>
 #include <grpcpp/ports_def.inc>
 
+namespace raftRpcProctoc {
+
 // 只有raft节点之间才会涉及rpc通信
 class raftRpc final {
  public:
   static constexpr char const* service_full_name() {
-    return "raftRpc";
+    return "raftRpcProctoc.raftRpc";
   }
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    virtual ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::AppendEntriesReply* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>>(AsyncAppendEntriesRaw(context, request, cq));
+    virtual ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::raftRpcProctoc::AppendEntriesReply* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>>(AsyncAppendEntriesRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>> PrepareAsyncAppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>>(PrepareAsyncAppendEntriesRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>> PrepareAsyncAppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>>(PrepareAsyncAppendEntriesRaw(context, request, cq));
     }
-    virtual ::grpc::Status InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::InstallSnapshotResponse* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>> AsyncInstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>>(AsyncInstallSnapshotRaw(context, request, cq));
+    virtual ::grpc::Status InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::raftRpcProctoc::InstallSnapshotResponse* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>> AsyncInstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>>(AsyncInstallSnapshotRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>> PrepareAsyncInstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>>(PrepareAsyncInstallSnapshotRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>> PrepareAsyncInstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>>(PrepareAsyncInstallSnapshotRaw(context, request, cq));
     }
-    virtual ::grpc::Status RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::RequestVoteReply* response) = 0;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>> AsyncRequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>>(AsyncRequestVoteRaw(context, request, cq));
+    virtual ::grpc::Status RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::raftRpcProctoc::RequestVoteReply* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>> AsyncRequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>>(AsyncRequestVoteRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>> PrepareAsyncRequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>>(PrepareAsyncRequestVoteRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>> PrepareAsyncRequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>>(PrepareAsyncRequestVoteRaw(context, request, cq));
     }
     class async_interface {
      public:
       virtual ~async_interface() {}
-      virtual void AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      virtual void InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      virtual void RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, std::function<void(::grpc::Status)>) = 0;
-      virtual void RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      virtual void RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
     typedef class async_interface experimental_async_interface;
     virtual class async_interface* async() { return nullptr; }
     class async_interface* experimental_async() { return async(); }
    private:
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::AppendEntriesReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>* AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::InstallSnapshotResponse>* PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) = 0;
-    virtual ::grpc::ClientAsyncResponseReaderInterface< ::RequestVoteReply>* PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::AppendEntriesReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>* AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::InstallSnapshotResponse>* PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::raftRpcProctoc::RequestVoteReply>* PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
     Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
-    ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::AppendEntriesReply* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>>(AsyncAppendEntriesRaw(context, request, cq));
+    ::grpc::Status AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::raftRpcProctoc::AppendEntriesReply* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>> AsyncAppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>>(AsyncAppendEntriesRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>> PrepareAsyncAppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>>(PrepareAsyncAppendEntriesRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>> PrepareAsyncAppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>>(PrepareAsyncAppendEntriesRaw(context, request, cq));
     }
-    ::grpc::Status InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::InstallSnapshotResponse* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>> AsyncInstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>>(AsyncInstallSnapshotRaw(context, request, cq));
+    ::grpc::Status InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::raftRpcProctoc::InstallSnapshotResponse* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>> AsyncInstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>>(AsyncInstallSnapshotRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>> PrepareAsyncInstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>>(PrepareAsyncInstallSnapshotRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>> PrepareAsyncInstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>>(PrepareAsyncInstallSnapshotRaw(context, request, cq));
     }
-    ::grpc::Status RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::RequestVoteReply* response) override;
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>> AsyncRequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>>(AsyncRequestVoteRaw(context, request, cq));
+    ::grpc::Status RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::raftRpcProctoc::RequestVoteReply* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>> AsyncRequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>>(AsyncRequestVoteRaw(context, request, cq));
     }
-    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>> PrepareAsyncRequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
-      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>>(PrepareAsyncRequestVoteRaw(context, request, cq));
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>> PrepareAsyncRequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>>(PrepareAsyncRequestVoteRaw(context, request, cq));
     }
     class async final :
       public StubInterface::async_interface {
      public:
-      void AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, std::function<void(::grpc::Status)>) override;
-      void AppendEntries(::grpc::ClientContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) override;
-      void InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, std::function<void(::grpc::Status)>) override;
-      void InstallSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) override;
-      void RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, std::function<void(::grpc::Status)>) override;
-      void RequestVote(::grpc::ClientContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, std::function<void(::grpc::Status)>) override;
+      void AppendEntries(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, std::function<void(::grpc::Status)>) override;
+      void InstallSnapshot(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, std::function<void(::grpc::Status)>) override;
+      void RequestVote(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response, ::grpc::ClientUnaryReactor* reactor) override;
      private:
       friend class Stub;
       explicit async(Stub* stub): stub_(stub) { }
@@ -121,12 +123,12 @@ class raftRpc final {
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
     class async async_stub_{this};
-    ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::AppendEntriesReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>* AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::InstallSnapshotResponse>* PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) override;
-    ::grpc::ClientAsyncResponseReader< ::RequestVoteReply>* PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>* AsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::AppendEntriesReply>* PrepareAsyncAppendEntriesRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::AppendEntriesArgs& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>* AsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::InstallSnapshotResponse>* PrepareAsyncInstallSnapshotRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::InstallSnapshotRequest& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>* AsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::raftRpcProctoc::RequestVoteReply>* PrepareAsyncRequestVoteRaw(::grpc::ClientContext* context, const ::raftRpcProctoc::RequestVoteArgs& request, ::grpc::CompletionQueue* cq) override;
     const ::grpc::internal::RpcMethod rpcmethod_AppendEntries_;
     const ::grpc::internal::RpcMethod rpcmethod_InstallSnapshot_;
     const ::grpc::internal::RpcMethod rpcmethod_RequestVote_;
@@ -137,9 +139,9 @@ class raftRpc final {
    public:
     Service();
     virtual ~Service();
-    virtual ::grpc::Status AppendEntries(::grpc::ServerContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response);
-    virtual ::grpc::Status InstallSnapshot(::grpc::ServerContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response);
-    virtual ::grpc::Status RequestVote(::grpc::ServerContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response);
+    virtual ::grpc::Status AppendEntries(::grpc::ServerContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response);
+    virtual ::grpc::Status InstallSnapshot(::grpc::ServerContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response);
+    virtual ::grpc::Status RequestVote(::grpc::ServerContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response);
   };
   template <class BaseClass>
   class WithAsyncMethod_AppendEntries : public BaseClass {
@@ -153,11 +155,11 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    void RequestAppendEntries(::grpc::ServerContext* context, ::AppendEntriesArgs* request, ::grpc::ServerAsyncResponseWriter< ::AppendEntriesReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+    void RequestAppendEntries(::grpc::ServerContext* context, ::raftRpcProctoc::AppendEntriesArgs* request, ::grpc::ServerAsyncResponseWriter< ::raftRpcProctoc::AppendEntriesReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
       ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
@@ -173,11 +175,11 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    void RequestInstallSnapshot(::grpc::ServerContext* context, ::InstallSnapshotRequest* request, ::grpc::ServerAsyncResponseWriter< ::InstallSnapshotResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+    void RequestInstallSnapshot(::grpc::ServerContext* context, ::raftRpcProctoc::InstallSnapshotRequest* request, ::grpc::ServerAsyncResponseWriter< ::raftRpcProctoc::InstallSnapshotResponse>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
       ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
@@ -193,11 +195,11 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
-    void RequestRequestVote(::grpc::ServerContext* context, ::RequestVoteArgs* request, ::grpc::ServerAsyncResponseWriter< ::RequestVoteReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+    void RequestRequestVote(::grpc::ServerContext* context, ::raftRpcProctoc::RequestVoteArgs* request, ::grpc::ServerAsyncResponseWriter< ::raftRpcProctoc::RequestVoteReply>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
       ::grpc::Service::RequestAsyncUnary(2, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
@@ -209,25 +211,25 @@ class raftRpc final {
    public:
     WithCallbackMethod_AppendEntries() {
       ::grpc::Service::MarkMethodCallback(0,
-          new ::grpc::internal::CallbackUnaryHandler< ::AppendEntriesArgs, ::AppendEntriesReply>(
+          new ::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response) { return this->AppendEntries(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::raftRpcProctoc::AppendEntriesArgs* request, ::raftRpcProctoc::AppendEntriesReply* response) { return this->AppendEntries(context, request, response); }));}
     void SetMessageAllocatorFor_AppendEntries(
-        ::grpc::MessageAllocator< ::AppendEntriesArgs, ::AppendEntriesReply>* allocator) {
+        ::grpc::MessageAllocator< ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(0);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::AppendEntriesArgs, ::AppendEntriesReply>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply>*>(handler)
               ->SetMessageAllocator(allocator);
     }
     ~WithCallbackMethod_AppendEntries() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* AppendEntries(
-      ::grpc::CallbackServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
   class WithCallbackMethod_InstallSnapshot : public BaseClass {
@@ -236,25 +238,25 @@ class raftRpc final {
    public:
     WithCallbackMethod_InstallSnapshot() {
       ::grpc::Service::MarkMethodCallback(1,
-          new ::grpc::internal::CallbackUnaryHandler< ::InstallSnapshotRequest, ::InstallSnapshotResponse>(
+          new ::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::InstallSnapshotRequest* request, ::InstallSnapshotResponse* response) { return this->InstallSnapshot(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::raftRpcProctoc::InstallSnapshotRequest* request, ::raftRpcProctoc::InstallSnapshotResponse* response) { return this->InstallSnapshot(context, request, response); }));}
     void SetMessageAllocatorFor_InstallSnapshot(
-        ::grpc::MessageAllocator< ::InstallSnapshotRequest, ::InstallSnapshotResponse>* allocator) {
+        ::grpc::MessageAllocator< ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::InstallSnapshotRequest, ::InstallSnapshotResponse>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse>*>(handler)
               ->SetMessageAllocator(allocator);
     }
     ~WithCallbackMethod_InstallSnapshot() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* InstallSnapshot(
-      ::grpc::CallbackServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
   class WithCallbackMethod_RequestVote : public BaseClass {
@@ -263,25 +265,25 @@ class raftRpc final {
    public:
     WithCallbackMethod_RequestVote() {
       ::grpc::Service::MarkMethodCallback(2,
-          new ::grpc::internal::CallbackUnaryHandler< ::RequestVoteArgs, ::RequestVoteReply>(
+          new ::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply>(
             [this](
-                   ::grpc::CallbackServerContext* context, const ::RequestVoteArgs* request, ::RequestVoteReply* response) { return this->RequestVote(context, request, response); }));}
+                   ::grpc::CallbackServerContext* context, const ::raftRpcProctoc::RequestVoteArgs* request, ::raftRpcProctoc::RequestVoteReply* response) { return this->RequestVote(context, request, response); }));}
     void SetMessageAllocatorFor_RequestVote(
-        ::grpc::MessageAllocator< ::RequestVoteArgs, ::RequestVoteReply>* allocator) {
+        ::grpc::MessageAllocator< ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply>* allocator) {
       ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(2);
-      static_cast<::grpc::internal::CallbackUnaryHandler< ::RequestVoteArgs, ::RequestVoteReply>*>(handler)
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply>*>(handler)
               ->SetMessageAllocator(allocator);
     }
     ~WithCallbackMethod_RequestVote() override {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* RequestVote(
-      ::grpc::CallbackServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/)  { return nullptr; }
+      ::grpc::CallbackServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/)  { return nullptr; }
   };
   typedef WithCallbackMethod_AppendEntries<WithCallbackMethod_InstallSnapshot<WithCallbackMethod_RequestVote<Service > > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
@@ -297,7 +299,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -314,7 +316,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -331,7 +333,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -348,7 +350,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -368,7 +370,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -388,7 +390,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -411,7 +413,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -433,7 +435,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -455,7 +457,7 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable synchronous version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -470,10 +472,10 @@ class raftRpc final {
     WithStreamedUnaryMethod_AppendEntries() {
       ::grpc::Service::MarkMethodStreamed(0,
         new ::grpc::internal::StreamedUnaryHandler<
-          ::AppendEntriesArgs, ::AppendEntriesReply>(
+          ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply>(
             [this](::grpc::ServerContext* context,
                    ::grpc::ServerUnaryStreamer<
-                     ::AppendEntriesArgs, ::AppendEntriesReply>* streamer) {
+                     ::raftRpcProctoc::AppendEntriesArgs, ::raftRpcProctoc::AppendEntriesReply>* streamer) {
                        return this->StreamedAppendEntries(context,
                          streamer);
                   }));
@@ -482,12 +484,12 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable regular version of this method
-    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::AppendEntriesArgs* /*request*/, ::AppendEntriesReply* /*response*/) override {
+    ::grpc::Status AppendEntries(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::AppendEntriesArgs* /*request*/, ::raftRpcProctoc::AppendEntriesReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedAppendEntries(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::AppendEntriesArgs,::AppendEntriesReply>* server_unary_streamer) = 0;
+    virtual ::grpc::Status StreamedAppendEntries(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::raftRpcProctoc::AppendEntriesArgs,::raftRpcProctoc::AppendEntriesReply>* server_unary_streamer) = 0;
   };
   template <class BaseClass>
   class WithStreamedUnaryMethod_InstallSnapshot : public BaseClass {
@@ -497,10 +499,10 @@ class raftRpc final {
     WithStreamedUnaryMethod_InstallSnapshot() {
       ::grpc::Service::MarkMethodStreamed(1,
         new ::grpc::internal::StreamedUnaryHandler<
-          ::InstallSnapshotRequest, ::InstallSnapshotResponse>(
+          ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse>(
             [this](::grpc::ServerContext* context,
                    ::grpc::ServerUnaryStreamer<
-                     ::InstallSnapshotRequest, ::InstallSnapshotResponse>* streamer) {
+                     ::raftRpcProctoc::InstallSnapshotRequest, ::raftRpcProctoc::InstallSnapshotResponse>* streamer) {
                        return this->StreamedInstallSnapshot(context,
                          streamer);
                   }));
@@ -509,12 +511,12 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable regular version of this method
-    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::InstallSnapshotRequest* /*request*/, ::InstallSnapshotResponse* /*response*/) override {
+    ::grpc::Status InstallSnapshot(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::InstallSnapshotRequest* /*request*/, ::raftRpcProctoc::InstallSnapshotResponse* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedInstallSnapshot(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::InstallSnapshotRequest,::InstallSnapshotResponse>* server_unary_streamer) = 0;
+    virtual ::grpc::Status StreamedInstallSnapshot(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::raftRpcProctoc::InstallSnapshotRequest,::raftRpcProctoc::InstallSnapshotResponse>* server_unary_streamer) = 0;
   };
   template <class BaseClass>
   class WithStreamedUnaryMethod_RequestVote : public BaseClass {
@@ -524,10 +526,10 @@ class raftRpc final {
     WithStreamedUnaryMethod_RequestVote() {
       ::grpc::Service::MarkMethodStreamed(2,
         new ::grpc::internal::StreamedUnaryHandler<
-          ::RequestVoteArgs, ::RequestVoteReply>(
+          ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply>(
             [this](::grpc::ServerContext* context,
                    ::grpc::ServerUnaryStreamer<
-                     ::RequestVoteArgs, ::RequestVoteReply>* streamer) {
+                     ::raftRpcProctoc::RequestVoteArgs, ::raftRpcProctoc::RequestVoteReply>* streamer) {
                        return this->StreamedRequestVote(context,
                          streamer);
                   }));
@@ -536,17 +538,19 @@ class raftRpc final {
       BaseClassMustBeDerivedFromService(this);
     }
     // disable regular version of this method
-    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::RequestVoteArgs* /*request*/, ::RequestVoteReply* /*response*/) override {
+    ::grpc::Status RequestVote(::grpc::ServerContext* /*context*/, const ::raftRpcProctoc::RequestVoteArgs* /*request*/, ::raftRpcProctoc::RequestVoteReply* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     // replace default version of method with streamed unary
-    virtual ::grpc::Status StreamedRequestVote(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::RequestVoteArgs,::RequestVoteReply>* server_unary_streamer) = 0;
+    virtual ::grpc::Status StreamedRequestVote(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::raftRpcProctoc::RequestVoteArgs,::raftRpcProctoc::RequestVoteReply>* server_unary_streamer) = 0;
   };
   typedef WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_InstallSnapshot<WithStreamedUnaryMethod_RequestVote<Service > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
   typedef WithStreamedUnaryMethod_AppendEntries<WithStreamedUnaryMethod_InstallSnapshot<WithStreamedUnaryMethod_RequestVote<Service > > > StreamedService;
 };
+
+}  // namespace raftRpcProctoc
 
 
 #include <grpcpp/ports_undef.inc>

@@ -52,6 +52,7 @@ struct TableStruct_raftRPC_2eproto {
 extern "C" {
 extern const ::google::protobuf::internal::DescriptorTable descriptor_table_raftRPC_2eproto;
 }  // extern "C"
+namespace raftRpcProctoc {
 class AppendEntriesArgs;
 struct AppendEntriesArgsDefaultTypeInternal;
 extern AppendEntriesArgsDefaultTypeInternal _AppendEntriesArgs_default_instance_;
@@ -80,11 +81,13 @@ class RequestVoteReply;
 struct RequestVoteReplyDefaultTypeInternal;
 extern RequestVoteReplyDefaultTypeInternal _RequestVoteReply_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull RequestVoteReply_class_data_;
+}  // namespace raftRpcProctoc
 namespace google {
 namespace protobuf {
 }  // namespace protobuf
 }  // namespace google
 
+namespace raftRpcProctoc {
 
 // ===================================================================
 
@@ -92,7 +95,7 @@ namespace protobuf {
 // -------------------------------------------------------------------
 
 class RequestVoteReply final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:RequestVoteReply) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.RequestVoteReply) */ {
  public:
   inline RequestVoteReply() : RequestVoteReply(nullptr) {}
   ~RequestVoteReply() PROTOBUF_FINAL;
@@ -210,7 +213,7 @@ class RequestVoteReply final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "RequestVoteReply"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.RequestVoteReply"; }
 
   explicit RequestVoteReply(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   RequestVoteReply(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RequestVoteReply& from);
@@ -267,7 +270,7 @@ class RequestVoteReply final : public ::google::protobuf::Message
   void _internal_set_votestate(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:RequestVoteReply)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.RequestVoteReply)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -306,7 +309,7 @@ extern const ::google::protobuf::internal::ClassDataFull RequestVoteReply_class_
 // -------------------------------------------------------------------
 
 class RequestVoteArgs final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:RequestVoteArgs) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.RequestVoteArgs) */ {
  public:
   inline RequestVoteArgs() : RequestVoteArgs(nullptr) {}
   ~RequestVoteArgs() PROTOBUF_FINAL;
@@ -424,7 +427,7 @@ class RequestVoteArgs final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "RequestVoteArgs"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.RequestVoteArgs"; }
 
   explicit RequestVoteArgs(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   RequestVoteArgs(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RequestVoteArgs& from);
@@ -492,7 +495,7 @@ class RequestVoteArgs final : public ::google::protobuf::Message
   void _internal_set_lastlogterm(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:RequestVoteArgs)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.RequestVoteArgs)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -532,7 +535,7 @@ extern const ::google::protobuf::internal::ClassDataFull RequestVoteArgs_class_d
 // -------------------------------------------------------------------
 
 class LogEntry final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:LogEntry) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.LogEntry) */ {
  public:
   inline LogEntry() : LogEntry(nullptr) {}
   ~LogEntry() PROTOBUF_FINAL;
@@ -650,7 +653,7 @@ class LogEntry final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "LogEntry"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.LogEntry"; }
 
   explicit LogEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   LogEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LogEntry& from);
@@ -712,7 +715,7 @@ class LogEntry final : public ::google::protobuf::Message
   void _internal_set_logindex(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:LogEntry)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.LogEntry)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -751,7 +754,7 @@ extern const ::google::protobuf::internal::ClassDataFull LogEntry_class_data_;
 // -------------------------------------------------------------------
 
 class InstallSnapshotResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:InstallSnapshotResponse) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.InstallSnapshotResponse) */ {
  public:
   inline InstallSnapshotResponse() : InstallSnapshotResponse(nullptr) {}
   ~InstallSnapshotResponse() PROTOBUF_FINAL;
@@ -869,7 +872,7 @@ class InstallSnapshotResponse final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "InstallSnapshotResponse"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.InstallSnapshotResponse"; }
 
   explicit InstallSnapshotResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   InstallSnapshotResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InstallSnapshotResponse& from);
@@ -904,7 +907,7 @@ class InstallSnapshotResponse final : public ::google::protobuf::Message
   void _internal_set_term(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:InstallSnapshotResponse)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.InstallSnapshotResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -941,7 +944,7 @@ extern const ::google::protobuf::internal::ClassDataFull InstallSnapshotResponse
 // -------------------------------------------------------------------
 
 class InstallSnapshotRequest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:InstallSnapshotRequest) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.InstallSnapshotRequest) */ {
  public:
   inline InstallSnapshotRequest() : InstallSnapshotRequest(nullptr) {}
   ~InstallSnapshotRequest() PROTOBUF_FINAL;
@@ -1059,7 +1062,7 @@ class InstallSnapshotRequest final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "InstallSnapshotRequest"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.InstallSnapshotRequest"; }
 
   explicit InstallSnapshotRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   InstallSnapshotRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const InstallSnapshotRequest& from);
@@ -1143,7 +1146,7 @@ class InstallSnapshotRequest final : public ::google::protobuf::Message
   void _internal_set_lastsnapshotincludeterm(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:InstallSnapshotRequest)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.InstallSnapshotRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -1184,7 +1187,7 @@ extern const ::google::protobuf::internal::ClassDataFull InstallSnapshotRequest_
 // -------------------------------------------------------------------
 
 class AppendEntriesReply final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:AppendEntriesReply) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.AppendEntriesReply) */ {
  public:
   inline AppendEntriesReply() : AppendEntriesReply(nullptr) {}
   ~AppendEntriesReply() PROTOBUF_FINAL;
@@ -1302,7 +1305,7 @@ class AppendEntriesReply final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "AppendEntriesReply"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.AppendEntriesReply"; }
 
   explicit AppendEntriesReply(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   AppendEntriesReply(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AppendEntriesReply& from);
@@ -1370,7 +1373,7 @@ class AppendEntriesReply final : public ::google::protobuf::Message
   void _internal_set_appstate(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:AppendEntriesReply)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.AppendEntriesReply)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -1410,7 +1413,7 @@ extern const ::google::protobuf::internal::ClassDataFull AppendEntriesReply_clas
 // -------------------------------------------------------------------
 
 class AppendEntriesArgs final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:AppendEntriesArgs) */ {
+/* @@protoc_insertion_point(class_definition:raftRpcProctoc.AppendEntriesArgs) */ {
  public:
   inline AppendEntriesArgs() : AppendEntriesArgs(nullptr) {}
   ~AppendEntriesArgs() PROTOBUF_FINAL;
@@ -1528,7 +1531,7 @@ class AppendEntriesArgs final : public ::google::protobuf::Message
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "AppendEntriesArgs"; }
+  static ::absl::string_view FullMessageName() { return "raftRpcProctoc.AppendEntriesArgs"; }
 
   explicit AppendEntriesArgs(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
   AppendEntriesArgs(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AppendEntriesArgs& from);
@@ -1558,23 +1561,23 @@ class AppendEntriesArgs final : public ::google::protobuf::Message
     kPrevLogTermFieldNumber = 4,
     kLeaderCommitFieldNumber = 6,
   };
-  // repeated .LogEntry Entries = 5;
+  // repeated .raftRpcProctoc.LogEntry Entries = 5;
   int entries_size() const;
   private:
   int _internal_entries_size() const;
 
   public:
   void clear_entries() ;
-  ::LogEntry* PROTOBUF_NONNULL mutable_entries(int index);
-  ::google::protobuf::RepeatedPtrField<::LogEntry>* PROTOBUF_NONNULL mutable_entries();
+  ::raftRpcProctoc::LogEntry* PROTOBUF_NONNULL mutable_entries(int index);
+  ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>* PROTOBUF_NONNULL mutable_entries();
 
   private:
-  const ::google::protobuf::RepeatedPtrField<::LogEntry>& _internal_entries() const;
-  ::google::protobuf::RepeatedPtrField<::LogEntry>* PROTOBUF_NONNULL _internal_mutable_entries();
+  const ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>& _internal_entries() const;
+  ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>* PROTOBUF_NONNULL _internal_mutable_entries();
   public:
-  const ::LogEntry& entries(int index) const;
-  ::LogEntry* PROTOBUF_NONNULL add_entries();
-  const ::google::protobuf::RepeatedPtrField<::LogEntry>& entries() const;
+  const ::raftRpcProctoc::LogEntry& entries(int index) const;
+  ::raftRpcProctoc::LogEntry* PROTOBUF_NONNULL add_entries();
+  const ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>& entries() const;
   // int32 Term = 1;
   void clear_term() ;
   ::int32_t term() const;
@@ -1625,7 +1628,7 @@ class AppendEntriesArgs final : public ::google::protobuf::Message
   void _internal_set_leadercommit(::int32_t value);
 
   public:
-  // @@protoc_insertion_point(class_scope:AppendEntriesArgs)
+  // @@protoc_insertion_point(class_scope:raftRpcProctoc.AppendEntriesArgs)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
@@ -1651,7 +1654,7 @@ class AppendEntriesArgs final : public ::google::protobuf::Message
         const AppendEntriesArgs& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::LogEntry > entries_;
+    ::google::protobuf::RepeatedPtrField< ::raftRpcProctoc::LogEntry > entries_;
     ::int32_t term_;
     ::int32_t leaderid_;
     ::int32_t prevlogindex_;
@@ -1690,7 +1693,7 @@ inline void LogEntry::clear_command() {
 }
 inline const ::std::string& LogEntry::command() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:LogEntry.Command)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.LogEntry.Command)
   return _internal_command();
 }
 template <typename Arg_, typename... Args_>
@@ -1698,13 +1701,13 @@ PROTOBUF_ALWAYS_INLINE void LogEntry::set_command(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.command_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:LogEntry.Command)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.LogEntry.Command)
 }
 inline ::std::string* PROTOBUF_NONNULL LogEntry::mutable_command()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_command();
-  // @@protoc_insertion_point(field_mutable:LogEntry.Command)
+  // @@protoc_insertion_point(field_mutable:raftRpcProctoc.LogEntry.Command)
   return _s;
 }
 inline const ::std::string& LogEntry::_internal_command() const {
@@ -1721,7 +1724,7 @@ inline ::std::string* PROTOBUF_NONNULL LogEntry::_internal_mutable_command() {
 }
 inline ::std::string* PROTOBUF_NULLABLE LogEntry::release_command() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:LogEntry.Command)
+  // @@protoc_insertion_point(field_release:raftRpcProctoc.LogEntry.Command)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -1743,7 +1746,7 @@ inline void LogEntry::set_allocated_command(::std::string* PROTOBUF_NULLABLE val
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.command_.IsDefault()) {
     _impl_.command_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:LogEntry.Command)
+  // @@protoc_insertion_point(field_set_allocated:raftRpcProctoc.LogEntry.Command)
 }
 
 // int32 LogTerm = 2;
@@ -1754,13 +1757,13 @@ inline void LogEntry::clear_logterm() {
                   0x00000002U);
 }
 inline ::int32_t LogEntry::logterm() const {
-  // @@protoc_insertion_point(field_get:LogEntry.LogTerm)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.LogEntry.LogTerm)
   return _internal_logterm();
 }
 inline void LogEntry::set_logterm(::int32_t value) {
   _internal_set_logterm(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:LogEntry.LogTerm)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.LogEntry.LogTerm)
 }
 inline ::int32_t LogEntry::_internal_logterm() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1779,13 +1782,13 @@ inline void LogEntry::clear_logindex() {
                   0x00000004U);
 }
 inline ::int32_t LogEntry::logindex() const {
-  // @@protoc_insertion_point(field_get:LogEntry.LogIndex)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.LogEntry.LogIndex)
   return _internal_logindex();
 }
 inline void LogEntry::set_logindex(::int32_t value) {
   _internal_set_logindex(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:LogEntry.LogIndex)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.LogEntry.LogIndex)
 }
 inline ::int32_t LogEntry::_internal_logindex() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1808,13 +1811,13 @@ inline void AppendEntriesArgs::clear_term() {
                   0x00000002U);
 }
 inline ::int32_t AppendEntriesArgs::term() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.Term)
   return _internal_term();
 }
 inline void AppendEntriesArgs::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:AppendEntriesArgs.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesArgs.Term)
 }
 inline ::int32_t AppendEntriesArgs::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1833,13 +1836,13 @@ inline void AppendEntriesArgs::clear_leaderid() {
                   0x00000004U);
 }
 inline ::int32_t AppendEntriesArgs::leaderid() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.LeaderId)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.LeaderId)
   return _internal_leaderid();
 }
 inline void AppendEntriesArgs::set_leaderid(::int32_t value) {
   _internal_set_leaderid(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:AppendEntriesArgs.LeaderId)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesArgs.LeaderId)
 }
 inline ::int32_t AppendEntriesArgs::_internal_leaderid() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1858,13 +1861,13 @@ inline void AppendEntriesArgs::clear_prevlogindex() {
                   0x00000008U);
 }
 inline ::int32_t AppendEntriesArgs::prevlogindex() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.PrevLogIndex)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.PrevLogIndex)
   return _internal_prevlogindex();
 }
 inline void AppendEntriesArgs::set_prevlogindex(::int32_t value) {
   _internal_set_prevlogindex(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:AppendEntriesArgs.PrevLogIndex)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesArgs.PrevLogIndex)
 }
 inline ::int32_t AppendEntriesArgs::_internal_prevlogindex() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1883,13 +1886,13 @@ inline void AppendEntriesArgs::clear_prevlogterm() {
                   0x00000010U);
 }
 inline ::int32_t AppendEntriesArgs::prevlogterm() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.PrevLogTerm)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.PrevLogTerm)
   return _internal_prevlogterm();
 }
 inline void AppendEntriesArgs::set_prevlogterm(::int32_t value) {
   _internal_set_prevlogterm(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:AppendEntriesArgs.PrevLogTerm)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesArgs.PrevLogTerm)
 }
 inline ::int32_t AppendEntriesArgs::_internal_prevlogterm() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1900,7 +1903,7 @@ inline void AppendEntriesArgs::_internal_set_prevlogterm(::int32_t value) {
   _impl_.prevlogterm_ = value;
 }
 
-// repeated .LogEntry Entries = 5;
+// repeated .raftRpcProctoc.LogEntry Entries = 5;
 inline int AppendEntriesArgs::_internal_entries_size() const {
   return _internal_entries().size();
 }
@@ -1913,44 +1916,44 @@ inline void AppendEntriesArgs::clear_entries() {
   ClearHasBitForRepeated(_impl_._has_bits_[0],
                   0x00000001U);
 }
-inline ::LogEntry* PROTOBUF_NONNULL AppendEntriesArgs::mutable_entries(int index)
+inline ::raftRpcProctoc::LogEntry* PROTOBUF_NONNULL AppendEntriesArgs::mutable_entries(int index)
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:AppendEntriesArgs.Entries)
+  // @@protoc_insertion_point(field_mutable:raftRpcProctoc.AppendEntriesArgs.Entries)
   return _internal_mutable_entries()->Mutable(index);
 }
-inline ::google::protobuf::RepeatedPtrField<::LogEntry>* PROTOBUF_NONNULL AppendEntriesArgs::mutable_entries()
+inline ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>* PROTOBUF_NONNULL AppendEntriesArgs::mutable_entries()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_mutable_list:AppendEntriesArgs.Entries)
+  // @@protoc_insertion_point(field_mutable_list:raftRpcProctoc.AppendEntriesArgs.Entries)
   ::google::protobuf::internal::TSanWrite(&_impl_);
   return _internal_mutable_entries();
 }
-inline const ::LogEntry& AppendEntriesArgs::entries(int index) const
+inline const ::raftRpcProctoc::LogEntry& AppendEntriesArgs::entries(int index) const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.Entries)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.Entries)
   return _internal_entries().Get(index);
 }
-inline ::LogEntry* PROTOBUF_NONNULL AppendEntriesArgs::add_entries()
+inline ::raftRpcProctoc::LogEntry* PROTOBUF_NONNULL AppendEntriesArgs::add_entries()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::LogEntry* _add =
+  ::raftRpcProctoc::LogEntry* _add =
       _internal_mutable_entries()->InternalAddWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), GetArena());
   SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_add:AppendEntriesArgs.Entries)
+  // @@protoc_insertion_point(field_add:raftRpcProctoc.AppendEntriesArgs.Entries)
   return _add;
 }
-inline const ::google::protobuf::RepeatedPtrField<::LogEntry>& AppendEntriesArgs::entries() const
+inline const ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>& AppendEntriesArgs::entries() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:AppendEntriesArgs.Entries)
+  // @@protoc_insertion_point(field_list:raftRpcProctoc.AppendEntriesArgs.Entries)
   return _internal_entries();
 }
-inline const ::google::protobuf::RepeatedPtrField<::LogEntry>&
+inline const ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>&
 AppendEntriesArgs::_internal_entries() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return _impl_.entries_;
 }
-inline ::google::protobuf::RepeatedPtrField<::LogEntry>* PROTOBUF_NONNULL
+inline ::google::protobuf::RepeatedPtrField<::raftRpcProctoc::LogEntry>* PROTOBUF_NONNULL
 AppendEntriesArgs::_internal_mutable_entries() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.entries_;
@@ -1964,13 +1967,13 @@ inline void AppendEntriesArgs::clear_leadercommit() {
                   0x00000020U);
 }
 inline ::int32_t AppendEntriesArgs::leadercommit() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesArgs.LeaderCommit)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesArgs.LeaderCommit)
   return _internal_leadercommit();
 }
 inline void AppendEntriesArgs::set_leadercommit(::int32_t value) {
   _internal_set_leadercommit(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  // @@protoc_insertion_point(field_set:AppendEntriesArgs.LeaderCommit)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesArgs.LeaderCommit)
 }
 inline ::int32_t AppendEntriesArgs::_internal_leadercommit() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -1993,13 +1996,13 @@ inline void AppendEntriesReply::clear_term() {
                   0x00000001U);
 }
 inline ::int32_t AppendEntriesReply::term() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesReply.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesReply.Term)
   return _internal_term();
 }
 inline void AppendEntriesReply::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_set:AppendEntriesReply.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesReply.Term)
 }
 inline ::int32_t AppendEntriesReply::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2018,13 +2021,13 @@ inline void AppendEntriesReply::clear_success() {
                   0x00000002U);
 }
 inline bool AppendEntriesReply::success() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesReply.Success)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesReply.Success)
   return _internal_success();
 }
 inline void AppendEntriesReply::set_success(bool value) {
   _internal_set_success(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:AppendEntriesReply.Success)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesReply.Success)
 }
 inline bool AppendEntriesReply::_internal_success() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2043,13 +2046,13 @@ inline void AppendEntriesReply::clear_updatenextindex() {
                   0x00000004U);
 }
 inline ::int32_t AppendEntriesReply::updatenextindex() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesReply.UpdateNextIndex)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesReply.UpdateNextIndex)
   return _internal_updatenextindex();
 }
 inline void AppendEntriesReply::set_updatenextindex(::int32_t value) {
   _internal_set_updatenextindex(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:AppendEntriesReply.UpdateNextIndex)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesReply.UpdateNextIndex)
 }
 inline ::int32_t AppendEntriesReply::_internal_updatenextindex() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2068,13 +2071,13 @@ inline void AppendEntriesReply::clear_appstate() {
                   0x00000008U);
 }
 inline ::int32_t AppendEntriesReply::appstate() const {
-  // @@protoc_insertion_point(field_get:AppendEntriesReply.AppState)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.AppendEntriesReply.AppState)
   return _internal_appstate();
 }
 inline void AppendEntriesReply::set_appstate(::int32_t value) {
   _internal_set_appstate(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:AppendEntriesReply.AppState)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.AppendEntriesReply.AppState)
 }
 inline ::int32_t AppendEntriesReply::_internal_appstate() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2097,13 +2100,13 @@ inline void RequestVoteArgs::clear_term() {
                   0x00000001U);
 }
 inline ::int32_t RequestVoteArgs::term() const {
-  // @@protoc_insertion_point(field_get:RequestVoteArgs.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteArgs.Term)
   return _internal_term();
 }
 inline void RequestVoteArgs::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_set:RequestVoteArgs.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteArgs.Term)
 }
 inline ::int32_t RequestVoteArgs::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2122,13 +2125,13 @@ inline void RequestVoteArgs::clear_candidateid() {
                   0x00000002U);
 }
 inline ::int32_t RequestVoteArgs::candidateid() const {
-  // @@protoc_insertion_point(field_get:RequestVoteArgs.CandidateId)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteArgs.CandidateId)
   return _internal_candidateid();
 }
 inline void RequestVoteArgs::set_candidateid(::int32_t value) {
   _internal_set_candidateid(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:RequestVoteArgs.CandidateId)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteArgs.CandidateId)
 }
 inline ::int32_t RequestVoteArgs::_internal_candidateid() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2147,13 +2150,13 @@ inline void RequestVoteArgs::clear_lastlogindex() {
                   0x00000004U);
 }
 inline ::int32_t RequestVoteArgs::lastlogindex() const {
-  // @@protoc_insertion_point(field_get:RequestVoteArgs.LastLogIndex)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteArgs.LastLogIndex)
   return _internal_lastlogindex();
 }
 inline void RequestVoteArgs::set_lastlogindex(::int32_t value) {
   _internal_set_lastlogindex(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:RequestVoteArgs.LastLogIndex)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteArgs.LastLogIndex)
 }
 inline ::int32_t RequestVoteArgs::_internal_lastlogindex() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2172,13 +2175,13 @@ inline void RequestVoteArgs::clear_lastlogterm() {
                   0x00000008U);
 }
 inline ::int32_t RequestVoteArgs::lastlogterm() const {
-  // @@protoc_insertion_point(field_get:RequestVoteArgs.LastLogTerm)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteArgs.LastLogTerm)
   return _internal_lastlogterm();
 }
 inline void RequestVoteArgs::set_lastlogterm(::int32_t value) {
   _internal_set_lastlogterm(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:RequestVoteArgs.LastLogTerm)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteArgs.LastLogTerm)
 }
 inline ::int32_t RequestVoteArgs::_internal_lastlogterm() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2201,13 +2204,13 @@ inline void RequestVoteReply::clear_term() {
                   0x00000001U);
 }
 inline ::int32_t RequestVoteReply::term() const {
-  // @@protoc_insertion_point(field_get:RequestVoteReply.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteReply.Term)
   return _internal_term();
 }
 inline void RequestVoteReply::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_set:RequestVoteReply.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteReply.Term)
 }
 inline ::int32_t RequestVoteReply::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2226,13 +2229,13 @@ inline void RequestVoteReply::clear_votegranted() {
                   0x00000002U);
 }
 inline bool RequestVoteReply::votegranted() const {
-  // @@protoc_insertion_point(field_get:RequestVoteReply.VoteGranted)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteReply.VoteGranted)
   return _internal_votegranted();
 }
 inline void RequestVoteReply::set_votegranted(bool value) {
   _internal_set_votegranted(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:RequestVoteReply.VoteGranted)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteReply.VoteGranted)
 }
 inline bool RequestVoteReply::_internal_votegranted() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2251,13 +2254,13 @@ inline void RequestVoteReply::clear_votestate() {
                   0x00000004U);
 }
 inline ::int32_t RequestVoteReply::votestate() const {
-  // @@protoc_insertion_point(field_get:RequestVoteReply.VoteState)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.RequestVoteReply.VoteState)
   return _internal_votestate();
 }
 inline void RequestVoteReply::set_votestate(::int32_t value) {
   _internal_set_votestate(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:RequestVoteReply.VoteState)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.RequestVoteReply.VoteState)
 }
 inline ::int32_t RequestVoteReply::_internal_votestate() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2280,13 +2283,13 @@ inline void InstallSnapshotRequest::clear_leaderid() {
                   0x00000002U);
 }
 inline ::int32_t InstallSnapshotRequest::leaderid() const {
-  // @@protoc_insertion_point(field_get:InstallSnapshotRequest.LeaderId)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotRequest.LeaderId)
   return _internal_leaderid();
 }
 inline void InstallSnapshotRequest::set_leaderid(::int32_t value) {
   _internal_set_leaderid(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_set:InstallSnapshotRequest.LeaderId)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotRequest.LeaderId)
 }
 inline ::int32_t InstallSnapshotRequest::_internal_leaderid() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2305,13 +2308,13 @@ inline void InstallSnapshotRequest::clear_term() {
                   0x00000004U);
 }
 inline ::int32_t InstallSnapshotRequest::term() const {
-  // @@protoc_insertion_point(field_get:InstallSnapshotRequest.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotRequest.Term)
   return _internal_term();
 }
 inline void InstallSnapshotRequest::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_set:InstallSnapshotRequest.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotRequest.Term)
 }
 inline ::int32_t InstallSnapshotRequest::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2330,13 +2333,13 @@ inline void InstallSnapshotRequest::clear_lastsnapshotincludeindex() {
                   0x00000008U);
 }
 inline ::int32_t InstallSnapshotRequest::lastsnapshotincludeindex() const {
-  // @@protoc_insertion_point(field_get:InstallSnapshotRequest.LastSnapShotIncludeIndex)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotRequest.LastSnapShotIncludeIndex)
   return _internal_lastsnapshotincludeindex();
 }
 inline void InstallSnapshotRequest::set_lastsnapshotincludeindex(::int32_t value) {
   _internal_set_lastsnapshotincludeindex(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  // @@protoc_insertion_point(field_set:InstallSnapshotRequest.LastSnapShotIncludeIndex)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotRequest.LastSnapShotIncludeIndex)
 }
 inline ::int32_t InstallSnapshotRequest::_internal_lastsnapshotincludeindex() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2355,13 +2358,13 @@ inline void InstallSnapshotRequest::clear_lastsnapshotincludeterm() {
                   0x00000010U);
 }
 inline ::int32_t InstallSnapshotRequest::lastsnapshotincludeterm() const {
-  // @@protoc_insertion_point(field_get:InstallSnapshotRequest.LastSnapShotIncludeTerm)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotRequest.LastSnapShotIncludeTerm)
   return _internal_lastsnapshotincludeterm();
 }
 inline void InstallSnapshotRequest::set_lastsnapshotincludeterm(::int32_t value) {
   _internal_set_lastsnapshotincludeterm(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  // @@protoc_insertion_point(field_set:InstallSnapshotRequest.LastSnapShotIncludeTerm)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotRequest.LastSnapShotIncludeTerm)
 }
 inline ::int32_t InstallSnapshotRequest::_internal_lastsnapshotincludeterm() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2381,7 +2384,7 @@ inline void InstallSnapshotRequest::clear_data() {
 }
 inline const ::std::string& InstallSnapshotRequest::data() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:InstallSnapshotRequest.Data)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotRequest.Data)
   return _internal_data();
 }
 template <typename Arg_, typename... Args_>
@@ -2389,13 +2392,13 @@ PROTOBUF_ALWAYS_INLINE void InstallSnapshotRequest::set_data(Arg_&& arg, Args_..
   ::google::protobuf::internal::TSanWrite(&_impl_);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   _impl_.data_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:InstallSnapshotRequest.Data)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotRequest.Data)
 }
 inline ::std::string* PROTOBUF_NONNULL InstallSnapshotRequest::mutable_data()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
   ::std::string* _s = _internal_mutable_data();
-  // @@protoc_insertion_point(field_mutable:InstallSnapshotRequest.Data)
+  // @@protoc_insertion_point(field_mutable:raftRpcProctoc.InstallSnapshotRequest.Data)
   return _s;
 }
 inline const ::std::string& InstallSnapshotRequest::_internal_data() const {
@@ -2412,7 +2415,7 @@ inline ::std::string* PROTOBUF_NONNULL InstallSnapshotRequest::_internal_mutable
 }
 inline ::std::string* PROTOBUF_NULLABLE InstallSnapshotRequest::release_data() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:InstallSnapshotRequest.Data)
+  // @@protoc_insertion_point(field_release:raftRpcProctoc.InstallSnapshotRequest.Data)
   if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
     return nullptr;
   }
@@ -2434,7 +2437,7 @@ inline void InstallSnapshotRequest::set_allocated_data(::std::string* PROTOBUF_N
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.data_.IsDefault()) {
     _impl_.data_.Set("", GetArena());
   }
-  // @@protoc_insertion_point(field_set_allocated:InstallSnapshotRequest.Data)
+  // @@protoc_insertion_point(field_set_allocated:raftRpcProctoc.InstallSnapshotRequest.Data)
 }
 
 // -------------------------------------------------------------------
@@ -2449,13 +2452,13 @@ inline void InstallSnapshotResponse::clear_term() {
                   0x00000001U);
 }
 inline ::int32_t InstallSnapshotResponse::term() const {
-  // @@protoc_insertion_point(field_get:InstallSnapshotResponse.Term)
+  // @@protoc_insertion_point(field_get:raftRpcProctoc.InstallSnapshotResponse.Term)
   return _internal_term();
 }
 inline void InstallSnapshotResponse::set_term(::int32_t value) {
   _internal_set_term(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_set:InstallSnapshotResponse.Term)
+  // @@protoc_insertion_point(field_set:raftRpcProctoc.InstallSnapshotResponse.Term)
 }
 inline ::int32_t InstallSnapshotResponse::_internal_term() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -2471,6 +2474,7 @@ inline void InstallSnapshotResponse::_internal_set_term(::int32_t value) {
 #endif  // __GNUC__
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace raftRpcProctoc
 
 
 // @@protoc_insertion_point(global_scope)

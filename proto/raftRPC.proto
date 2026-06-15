@@ -1,5 +1,5 @@
 syntax = "proto3";
-// package raftRpcProctoc; //所在的命名空间
+package raftRpcProctoc; //所在的命名空间
 // 日志实体
 message LogEntry{
     bytes Command  =1;
