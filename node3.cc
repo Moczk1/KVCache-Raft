@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <string>
 
 #include "grpcpp/grpcpp.h"
 #include "raft.h"
@@ -13,7 +12,7 @@ using namespace moczkrin;
 
 void runService(RaftService &service, std::vector<std::pair<std::string, std::string>> &info)
 {
-    service.init("127.0.0.1", "50001", info);
+    service.init("127.0.0.1", "50003", info);
     std::cout << __LINE__ << std::endl;
 }
 

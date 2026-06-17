@@ -1,4 +1,3 @@
-#pragma once
 #include <iostream>
 #include <cstdio>
 #include <mutex>
@@ -13,7 +12,7 @@
 #include <cstdarg>
 #include <ctime>
 #include <iomanip>
-
+#include "config.h"
 #include "raftRPC.pb.h"
 #include "raftRPC.grpc.pb.h"
 #include "grpcpp/grpcpp.h"
@@ -43,8 +42,8 @@ namespace moczkrin
         VoteState m_voteState;
         int m_id = -1;
         int m_currentTerm = -1;
-        std::string m_ip;
-        std::string m_port;
+        std::string m_ip = "";
+        std::string m_port = "";
 
         // vote and state
         enum Status
@@ -74,6 +73,7 @@ namespace moczkrin
 
         // RaftNode calls peers' service
         std::vector<std::unique_ptr<raftRpcProctoc::raftRpc::Stub>> m_peers;
+        std::vector<std::pair<std::string,std::string>> m_peers_addr;
 
         // RaftNode's listening interface
         std::unique_ptr<grpc::Server> m_serverInterface;
@@ -84,8 +84,8 @@ namespace moczkrin
 
         void electionTimeOutTicker();
         void doElection();
-        bool sendRequestVote(int peer_idx, raftRpcProctoc::RequestVoteArgs *args,
-                             raftRpcProctoc::RequestVoteReply *reply, int *votedNum);
+        bool sendRequestVote(int peer_idx, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+                                      std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum);
 
         bool containsNewLog(int index, int term);
         void listening()
@@ -99,9 +99,9 @@ namespace moczkrin
         };
 
         RaftService() {};
-        void init(std::string ip, std::string port);
+        void init(std::string ip, std::string port, std::vector<std::pair<std::string,std::string>> peers);
 
-        bool addPeer(std::string ip, std::string port);
+        // bool addPeer(std::string ip, std::string port);
 
     private:
         std::chrono::milliseconds getRandomizedElectionTimeout()

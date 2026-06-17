@@ -2,6 +2,9 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <unistd.h>
+#include <linux/sched.h>
+#include <sched.h>
 
 #include "raft.h"
 #include "config.h"
@@ -82,6 +85,7 @@ namespace moczkrin
         {
             m_votedFor = request->candidateid();
             m_lastResetElectionTime = std::chrono::high_resolution_clock::now(); // 认为必须要在投出票的时候才重置定时器，
+            std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t 投票成功功能新选举时间" << std::endl;
             response->set_term(m_currentTerm);
             response->set_votestate(Normal);
             response->set_votegranted(true);
@@ -90,12 +94,13 @@ namespace moczkrin
         return grpc::Status::OK;
     }
 
-    bool RaftService::sendRequestVote(int peer_idx, raftRpcProctoc::RequestVoteArgs *args,
-                                      raftRpcProctoc::RequestVoteReply *reply, int *votedNum)
+    bool RaftService::sendRequestVote(int peer_idx, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+                                      std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum)
     {
+        std::cout << __LINE__ << "::m_id: " << m_id << " send vote request to peers' id " << peer_idx + 1 << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
         grpc::ClientContext context;
-        grpc::Status status = m_peers[peer_idx]->RequestVote(&context, *args, reply);
+        grpc::Status status = m_peers[peer_idx]->RequestVote(&context, *args, reply.get());
 
         if (!status.ok())
         {
@@ -118,16 +123,19 @@ namespace moczkrin
             return true;
         }
 
-        assert(reply->term() == m_currentTerm);
+        assert(reply->term() == m_currentTerm );
 
         if (!reply->votegranted())
         {
             return true;
         }
 
+        
         *votedNum = *votedNum + 1;
-        if (*votedNum > m_peers.size() / 2 + 1)
+        if (*votedNum >= m_peers.size() / 2 + 1)
         { // 成为 lead
+            assert(m_status == Candidate);
+            std::cout << "m_id: " << m_id << "成为 leader!" << std::endl;
             *votedNum = 0;
             if (m_status == Leader)
             {
@@ -153,7 +161,18 @@ namespace moczkrin
     }
 
     void RaftService::doHeartBeat()
-    {
+    {   
+        while (true)
+        {   
+            std::shared_lock<std::shared_mutex> lock(m_mutex);
+            if (m_status != Leader)
+            {
+                break;
+            }
+            std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << m_id << "是leader正在运行 heartbeating(); m_term" << m_currentTerm << std::endl;
+            lock.unlock();
+            usleep(HeartBeatTimeout * 1000);
+        }
     }
 
     void RaftService::doElection()
@@ -174,7 +193,7 @@ namespace moczkrin
 
             // persist();
 
-            int votedNum = 1;
+            std::shared_ptr<int> votedNum = std::make_shared<int>(1);
 
             m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
 
@@ -192,8 +211,8 @@ namespace moczkrin
 
                 auto requestVoteReply = std::make_shared<raftRpcProctoc::RequestVoteReply>();
 
-                std::thread t(&RaftService::sendRequestVote, this, i, requestVoteArgs.get(), requestVoteReply.get(),
-                              &votedNum); // 创建新线程并执行b函数，并传递参数
+                std::thread t(&RaftService::sendRequestVote, this, i, requestVoteArgs, requestVoteReply,
+                              votedNum); // 创建新线程并执行b函数，并传递参数
                 t.detach();
             }
         }
@@ -239,9 +258,19 @@ namespace moczkrin
             if (std::chrono::duration<double, std::milli>(m_lastResetElectionTime - wakeTime).count() > 0)
             {
                 // 说明睡眠的这段时间有重置定时器，那么就没有超时，再次睡眠
+                std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "更新过m_lastResetElectionTime,不执行 doElection() 等待下一次 heartBeat()" << std::endl;
                 continue;
             }
+            std::cout << __LINE__ << "\t::" << m_id << "没有接受到 heartBeat() 执行doElection() " << std::endl;
             doElection();
+            if (m_status != Leader)
+            {
+                std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "没成为 leader!" << "\t term:" << m_currentTerm << std::endl;
+            }
+            if (m_status == Leader)
+            {
+                std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "成为 leader!" << "\t term:" << m_currentTerm << std::endl;
+            }
         }
     }
 
@@ -262,12 +291,13 @@ namespace moczkrin
         return term > lastTerm || (term == lastTerm && index >= lastIndex);
     }
 
-    void RaftService::init(std::string ip, std::string port)
+    void RaftService::init(std::string ip, std::string port, std::vector<std::pair<std::string, std::string>> peers)
     {
         m_ip = ip;
         m_port = port;
         m_voteState = Normal;
         assert(m_serverInterface == nullptr);
+        m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
 
         grpc::ServerBuilder builder;
         builder.AddListeningPort(m_ip + ":" + m_port, grpc::InsecureServerCredentials());
@@ -279,38 +309,33 @@ namespace moczkrin
         {
             throw std::runtime_error("failed to start gRPC server on " + m_ip + ":" + m_port);
         }
-    }
 
-    bool RaftService::addPeer(std::string ip, std::string port)
-    {
-        // std::string ip_port_ = ip + ":" + port;
-        // if (ip.compare(m_ip) == 0 && port.compare(m_port) == 0)
-        // {
-        //     std::cout << "添加服务器地址为本地地址" << std::endl;
-        //     return false;
-        // }
+        int count = 0;
+        for (const auto &[ip, port] : peers)
+        {
+            count++;
+            if (ip == m_ip && port == m_port)
+            {
+                this->m_id = count;
+                std::cout << m_id << std::endl;
+                continue;
+            }
+            std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(ip + ":" + port, grpc::InsecureChannelCredentials());
+            std::unique_ptr<raftRpcProctoc::raftRpc::Stub> stub = raftRpcProctoc::raftRpc::NewStub(channel);
+            assert(stub != nullptr);
+            m_peers.push_back(std::move(stub));
+            m_peers_addr.push_back({ip, port});
+        }
 
-        // if (m_peers.find(ip_port_) != m_peers.end())
-        // {
-        //     return true;
-        // }
+        std::thread t([this]()
+                      { this->electionTimeOutTicker(); });
+        t.detach();
 
-        // std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(ip_port_, grpc::InsecureChannelCredentials());
-        // std::unique_ptr<raftRpcProctoc::raftRpc::Stub> stub = raftRpcProctoc::raftRpc::NewStub(channel);
-        // m_peers.insert({ip_port_, std::move(stub)});
-
-        return true;
+        assert(m_ip != "" && m_port != "");
+        this->listening();
     }
 
     void RaftService::leaderHearBeatTicker()
-    {
-    }
-
-    void RaftService::electionTimeOutTicker()
-    {
-    }
-
-    void RaftService::doElection()
     {
     }
 
