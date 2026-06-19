@@ -41,10 +41,10 @@ namespace moczkrin
     public:
         VoteState m_voteState;
         int m_id = 0;
-        int m_currentTerm =0;
         std::string m_ip = "";
         std::string m_port = "";
-
+        
+        int m_currentTerm =0;
         // vote and state
         enum Status
         {

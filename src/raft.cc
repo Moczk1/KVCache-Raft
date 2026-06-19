@@ -148,13 +148,13 @@ namespace moczkrin
             }
 
             // leader 会一次 rpc 中发送所有消息，需要保证 commit index 小于 log index
-            assert(lastLogIndex > m_commitIndex);
+            assert(lastLogIndex >= m_commitIndex);
 
             response->set_success(true);
             response->set_term(m_currentTerm);
 
             std::print(
-                "{}:{}::leadid:{}->nodeod:{}; 接受log, 当前日志的index:{}, 当前日志的commit index:{}",
+                "{}:{}::leadid:{}->nodeod:{}; 接受log, 当前日志的index:{}, 当前日志的commit index:{}\n",
                 __FUNCTION__, __LINE__,
                 request->leaderid(), m_id,
                 lastLogIndex, m_commitIndex);
@@ -423,7 +423,7 @@ namespace moczkrin
         {
             while (m_status != Leader)
             {
-                usleep(1000 * HeartBeatTimeout);
+                std::this_thread::sleep_for(std::chrono::milliseconds(HeartBeatTimeout));
             }
             static std::atomic<int32_t> atomicCount = 0;
 
@@ -475,18 +475,18 @@ namespace moczkrin
         //                                 const ::raftRpcProctoc::AppendEntriesArgs *request,
         //                                 ::raftRpcProctoc::AppendEntriesReply *response)
 
-        std::print("{}:{}::leaderid:{} 向节点{}发送AE",
+        std::print("{}:{}::leaderid:{} 向节点{}发送AE\n",
                    __FUNCTION__, __LINE__, m_id, serIdx);
         grpc::ClientContext context;
         grpc::Status status = m_peers[serIdx]->AppendEntries(&context, *args, reply.get());
 
         if (!status.ok())
         {
-            std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 失败！",
+            std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 失败！\n",
                        __FUNCTION__, __LINE__, m_id, serIdx);
             return false;
         }
-        std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 成功！",
+        std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 成功！\n",
                    __FUNCTION__, __LINE__, m_id, serIdx);
 
         // if()
@@ -565,13 +565,16 @@ namespace moczkrin
 
         if (m_status == Leader)
         {
-            std::print("{}:{}::leader:{}拿到了 mutex 并进行 heartBeat()发送 AE!",
-                       __FUNCTION__, __LINE__, m_id);
+            m_lastResetHearBeatTime = std::chrono::high_resolution_clock::now();
+            // m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
+
+            std::print("{}:{}::leader:{}_term:{}拿到了 mutex 并进行 heartBeat()发送 AE!\n",
+                       __FUNCTION__, __LINE__, m_id, m_currentTerm);
             auto appendNum = std::make_shared<int>(1);
             for (int i = 0; i < m_peers.size(); i++)
             {
-                std::print("{}:{}::leader:{} heartBeat() 向{}发送 AE!",
-                           __FUNCTION__, __LINE__, m_id, i);
+                std::print("{}:{}::leader:{}_term:{} heartBeat() 向{}发送 AE!\n",
+                           __FUNCTION__, __LINE__, m_id, m_currentTerm, i);
                 assert(m_nextIndex[i] >= 1);
                 if (m_nextIndex[i] <= m_lastSnapshotIncludeIndex)
                 {
@@ -583,6 +586,47 @@ namespace moczkrin
                 {
                     prevLogIndex = m_lastSnapshotIncludeIndex;
                     prevLogTerm = m_lastSnapshotIncludeTerm;
+                    // std::print("{}:{}::nodeid:{} 没有发送 AE!\n", __FUNCTION__, __LINE__, m_id);
+                    // std::print("m_lastSnapshotIncludeIndex:{}\n", m_lastSnapshotIncludeIndex);
+                    // std::print("m_lastSnapshotIncludeTerm:{}\n", m_lastSnapshotIncludeTerm);
+                    std::print("m_commitIndex:{}\n", m_commitIndex);
+                    // for (int i = 0; i < m_nextIndex.size(); i++)
+                    //     std::print("m_nextIndex{}:{}\n", i, m_nextIndex[i]);
+
+                    // for (int i = 0; i < m_matchIndex.size(); i++)
+                    //     std::print("m_matchIndex{}:{}\n", i, m_matchIndex[i]);
+                    
+
+                    prevLogIndex = m_nextIndex[i] - 1;
+                    // prevLogTerm = m_logs[prevLogIndex - m_lastSnapshotIncludeIndex - 1].logterm();
+                    prevLogTerm = m_lastSnapshotIncludeTerm;
+                    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> appendEntriesArgs = std::make_shared<raftRpcProctoc::AppendEntriesArgs>();
+                    appendEntriesArgs->set_term(m_currentTerm);
+                    appendEntriesArgs->set_leaderid(m_id);
+                    appendEntriesArgs->set_prevlogindex(prevLogIndex);
+                    appendEntriesArgs->set_prevlogterm(prevLogTerm);
+                    appendEntriesArgs->clear_entries();
+                    appendEntriesArgs->set_leadercommit(m_commitIndex);
+                    // prevLogIndex != m_lastSnapIncludeIndex
+                    for (int j = [this, prevLogIndex]() -> int
+                         {
+                             return prevLogIndex - m_lastSnapshotIncludeIndex - 1;
+                         }();
+                         j < m_logs.size(); j++)
+                    {
+                        raftRpcProctoc::LogEntry *sendEntryPtr = appendEntriesArgs->add_entries();
+                        *sendEntryPtr = m_logs[j];
+                    }
+
+                    int lastLogIndex = m_logs.empty() ? m_lastSnapshotIncludeIndex : m_logs[m_logs.size() - 1].logindex();
+
+                    assert(appendEntriesArgs->prevlogindex() + appendEntriesArgs->entries_size() == lastLogIndex);
+
+                    const std::shared_ptr<raftRpcProctoc::AppendEntriesReply> appendEntriesReply =
+                        std::make_shared<raftRpcProctoc::AppendEntriesReply>();
+                    // appendEntriesReply->set_appstate()
+                    std::thread t(&RaftService::sendAppendEntries, this, i, appendEntriesArgs, appendEntriesReply, appendNum);
+                    t.detach();
                 }
                 else
                 {
@@ -616,7 +660,7 @@ namespace moczkrin
                     std::thread t(&RaftService::sendAppendEntries, this, i, appendEntriesArgs, appendEntriesReply, appendNum);
                     t.detach();
                 }
-                m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
+                // m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
             }
         }
     }
@@ -645,6 +689,7 @@ namespace moczkrin
         m_voteState = Normal;
         assert(m_serverInterface == nullptr);
         m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
+        m_lastResetHearBeatTime = m_lastResetElectionTime;
 
         grpc::ServerBuilder builder;
         builder.AddListeningPort(m_ip + ":" + m_port, grpc::InsecureServerCredentials());
@@ -680,8 +725,6 @@ namespace moczkrin
 
             m_matchIndex.push_back(0);
             m_nextIndex.push_back(0);
-            m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
-            m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
         }
 
         std::thread t([this]()
