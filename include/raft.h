@@ -40,8 +40,8 @@ namespace moczkrin
 
     public:
         VoteState m_voteState;
-        int m_id = -1;
-        int m_currentTerm = -1;
+        int m_id = 0;
+        int m_currentTerm =0;
         std::string m_ip = "";
         std::string m_port = "";
 
@@ -68,12 +68,17 @@ namespace moczkrin
         std::vector<int> m_nextIndex; // 这两个状态的下标1开始，因为通常commitIndex和lastApplied从0开始，应该是一个无效的index，因此下标从1开始
         std::vector<int> m_matchIndex;
 
+        int m_commitIndex = -1;
+
         // time association
         std::chrono::system_clock::time_point m_lastResetElectionTime;
 
+        // 心跳超时，用于leader
+        std::chrono::system_clock::time_point m_lastResetHearBeatTime;
+
         // RaftNode calls peers' service
         std::vector<std::unique_ptr<raftRpcProctoc::raftRpc::Stub>> m_peers;
-        std::vector<std::pair<std::string,std::string>> m_peers_addr;
+        std::vector<std::pair<std::string, std::string>> m_peers_addr;
 
         // RaftNode's listening interface
         std::unique_ptr<grpc::Server> m_serverInterface;
@@ -81,11 +86,13 @@ namespace moczkrin
     public:
         void leaderHearBeatTicker();
         void doHeartBeat();
+        bool sendAppendEntries(int serIdx, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+                               std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply, std::shared_ptr<int> appendNums);
 
         void electionTimeOutTicker();
         void doElection();
         bool sendRequestVote(int peer_idx, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
-                                      std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum);
+                             std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum);
 
         bool containsNewLog(int index, int term);
         void listening()
@@ -99,7 +106,7 @@ namespace moczkrin
         };
 
         RaftService() {};
-        void init(std::string ip, std::string port, std::vector<std::pair<std::string,std::string>> peers);
+        void init(std::string ip, std::string port, std::vector<std::pair<std::string, std::string>> peers);
 
         // bool addPeer(std::string ip, std::string port);
 
