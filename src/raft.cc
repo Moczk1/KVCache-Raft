@@ -407,7 +407,7 @@ namespace moczkrin
                 // 说明睡眠的这段时间有重置定时器，那么就没有超时，再次睡眠
                 // std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "" << std::endl;
                 std::print(
-                    "{}:{}::\t\t更新过m_lastResetElectionTime,不执行 doElection() 等待下一次 heartBeat()",
+                    "{}:{}::\t\t更新过m_lastResetElectionTime,不执行 doElection() 等待下一次 heartBeat()\n",
                     __FUNCTION__, __LINE__);
                 continue;
             }
