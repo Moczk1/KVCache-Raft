@@ -257,7 +257,9 @@ namespace moczkrin
     bool RaftService::sendRequestVote(int peer_idx, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
                                       std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum)
     {
-        std::cout << __LINE__ << "::m_id: " << m_id << " send vote request to peers' id " << peer_idx + 1 << std::endl;
+        std::print(
+            "{}:{}\t\t::nodeid:{} send vote request to nodeid:{}\n", __FUNCTION__, __LINE__,
+            m_id, peer_idx + 1);
         auto start = std::chrono::high_resolution_clock::now();
         grpc::ClientContext context;
         grpc::Status status = m_peers[peer_idx]->RequestVote(&context, *args, reply.get());
@@ -324,7 +326,8 @@ namespace moczkrin
         std::unique_lock<std::shared_mutex> lock(m_mutex);
         if (m_status == Leader)
         {
-            std::cout << __LINE__ << ":: leader node 申请再次成为 leader" << std::endl;
+            // std::cout << __LINE__ << "" << std::endl;
+            std::print("{}:{}::\t\t leader node 申请再次成为 leader.\n", __FUNCTION__, __LINE__);
         }
 
         if (m_status != Leader)
@@ -402,17 +405,20 @@ namespace moczkrin
             if (std::chrono::duration<double, std::milli>(m_lastResetElectionTime - wakeTime).count() > 0)
             {
                 // 说明睡眠的这段时间有重置定时器，那么就没有超时，再次睡眠
-                std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "更新过m_lastResetElectionTime,不执行 doElection() 等待下一次 heartBeat()" << std::endl;
+                // std::cout << __FUNCTION__ << ":" << __LINE__ << "::\t" << "" << std::endl;
+                std::print(
+                    "{}:{}::\t\t更新过m_lastResetElectionTime,不执行 doElection() 等待下一次 heartBeat()",
+                    __FUNCTION__, __LINE__);
                 continue;
             }
             doElection();
             if (m_status != Leader)
             {
-                std::print("{}:{}::\t没成为 leader!term:{}", __FUNCTION__, __LINE__, m_currentTerm);
+                std::print("{}:{}::\t\t没成为 leader!term:{}\n", __FUNCTION__, __LINE__, m_currentTerm);
             }
             if (m_status == Leader)
             {
-                std::print("{}:{}::\t成为 leader!term:{}", __FUNCTION__, __LINE__, m_currentTerm);
+                std::print("{}:{}::\t\t成为 leader!term:{}\n", __FUNCTION__, __LINE__, m_currentTerm);
             }
         }
     }
@@ -475,19 +481,20 @@ namespace moczkrin
         //                                 const ::raftRpcProctoc::AppendEntriesArgs *request,
         //                                 ::raftRpcProctoc::AppendEntriesReply *response)
 
-        std::print("{}:{}::leaderid:{} 向节点{}发送AE\n",
+        std::print("{}:{}::\t\tleaderid:{} 向节点{}发送AE\n",
                    __FUNCTION__, __LINE__, m_id, serIdx);
         grpc::ClientContext context;
         grpc::Status status = m_peers[serIdx]->AppendEntries(&context, *args, reply.get());
 
         if (!status.ok())
         {
-            std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 失败！\n",
+            std::print("{}:{}::\t\tleaderid:{} 向节点{}发送AE rpc 失败！\n",
                        __FUNCTION__, __LINE__, m_id, serIdx);
             return false;
         }
-        std::print("{}:{}::leaderid:{} 向节点{}发送AE rpc 成功！\n",
-                   __FUNCTION__, __LINE__, m_id, serIdx);
+        std::print(
+            "{}:{}::\t\tleaderid:{} 向节点{}发送AE rpc 成功！\n", __FUNCTION__, __LINE__,
+            m_id, serIdx);
 
         // if()
 
@@ -496,7 +503,7 @@ namespace moczkrin
         if (reply->term() > m_currentTerm)
         {
             std::print(
-                "{}:{}::leaderid:{} 向节点{}发送AE 对方term:{} 大于自己的term:{} 自身状态转变为 Follower！！",
+                "{}:{}::\t\tleaderid:{} 向节点{}发送AE 对方term:{} 大于自己的term:{} 自身状态转变为 Follower！\n",
                 __FUNCTION__, __LINE__, m_id, serIdx,
                 reply->term(), m_currentTerm);
             m_status = Follower;
@@ -508,7 +515,7 @@ namespace moczkrin
         if (reply->term() < m_currentTerm)
         {
             std::print(
-                "{}:{}::leaderid:{} 向节点{}发送AE 对方term:{} 小于自己的term:{}！不进行任何操作！",
+                "{}:{}::\t\tleaderid:{} 向节点{}发送AE 对方term:{} 小于自己的term:{}！不进行任何操作！\n",
                 __FUNCTION__, __LINE__, m_id, serIdx,
                 reply->term(), m_currentTerm);
             return true;
@@ -517,7 +524,8 @@ namespace moczkrin
 
         if (m_status != Leader)
         {
-            std::print("接受到rpc reply 后自身状态发生变化。不再是Leader！不进行后续处理。");
+            std::print("{}:{}::\t\t接受到rpc reply 后自身状态发生变化。不再是Leader！不进行后续处理。\n",
+                       __FUNCTION__, __LINE__);
             return true;
         }
 
@@ -526,7 +534,7 @@ namespace moczkrin
             // 日志不成功匹配
             if (reply->updatenextindex() != -100)
             {
-                std::print("{}:{}::leaderid:{} 向节点{}发送AE。发生不匹配回缩nextIndex[]:{}！",
+                std::print("{}:{}\t\t::leaderid:{} 向节点{}发送AE。发生不匹配回缩nextIndex[]:{}！\n",
                            __FUNCTION__, __LINE__,
                            m_id, serIdx, serIdx, reply->updatenextindex());
                 m_nextIndex[serIdx] = reply->updatenextindex();
@@ -535,7 +543,11 @@ namespace moczkrin
         else
         {
             *appendNums += 1;
-            std::print("节点:{}返回true，当前appendNums{}", serIdx, *appendNums);
+
+            if (DEBUG)
+                std::print("{}:{}\t\t::节点:{}返回true，当前appendNums{}\n", __FUNCTION__, __LINE__,
+                           serIdx, *appendNums);
+
             m_matchIndex[serIdx] = std::max(m_matchIndex[serIdx], args->prevlogindex() + args->entries_size());
             m_nextIndex[serIdx] = m_matchIndex[serIdx] + 1;
 
@@ -548,7 +560,7 @@ namespace moczkrin
                 if (args->entries_size() > 0)
                 {
                     assert(args->entries(args->entries_size() - 1).logterm() == m_currentTerm);
-                    std::print("{}:{}::leader:{}成功提交，更新leader的m_commitIndex",
+                    std::print("{}:{}\t\t::leader:{}成功提交，更新leader的m_commitIndex\n",
                                __FUNCTION__, __LINE__, m_id);
                     m_commitIndex = std::max(m_commitIndex, args->prevlogindex() + args->entries_size());
                 }
@@ -568,12 +580,12 @@ namespace moczkrin
             m_lastResetHearBeatTime = std::chrono::high_resolution_clock::now();
             // m_lastResetElectionTime = std::chrono::high_resolution_clock::now();
 
-            std::print("{}:{}::leader:{}_term:{}拿到了 mutex 并进行 heartBeat()发送 AE!\n",
+            std::print("{}:{}\t\t::leader:{}_term:{}拿到了 mutex 并进行 heartBeat()发送 AE!\n",
                        __FUNCTION__, __LINE__, m_id, m_currentTerm);
             auto appendNum = std::make_shared<int>(1);
             for (int i = 0; i < m_peers.size(); i++)
             {
-                std::print("{}:{}::leader:{}_term:{} heartBeat() 向{}发送 AE!\n",
+                std::print("{}:{}\t\t::leader:{}_term:{} heartBeat() 向{}发送 AE!\n",
                            __FUNCTION__, __LINE__, m_id, m_currentTerm, i);
                 assert(m_nextIndex[i] >= 1);
                 if (m_nextIndex[i] <= m_lastSnapshotIncludeIndex)
@@ -595,7 +607,6 @@ namespace moczkrin
 
                     // for (int i = 0; i < m_matchIndex.size(); i++)
                     //     std::print("m_matchIndex{}:{}\n", i, m_matchIndex[i]);
-                    
 
                     prevLogIndex = m_nextIndex[i] - 1;
                     // prevLogTerm = m_logs[prevLogIndex - m_lastSnapshotIncludeIndex - 1].logterm();
