@@ -1,0 +1,3 @@
+/home/moczk/Developer/KVCache-Raft/build/CMakeFiles/kvserver.dir
+/home/moczk/Developer/KVCache-Raft/build/CMakeFiles/edit_cache.dir
+/home/moczk/Developer/KVCache-Raft/build/CMakeFiles/rebuild_cache.dir

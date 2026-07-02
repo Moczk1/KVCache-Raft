@@ -3,13 +3,20 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/proto/",
+                "${workspaceFolder}/proto/**",
+                "${workspaceFolder}",
+                "/usr/include",
+                "/usr/local/include"
+
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/clang++",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c23",
             "cppStandard": "c++23",
-            "intelliSenseMode": "linux-clang-x64"
+            "intelliSenseMode": "linux-clang-x64"        
         }
     ],
     "version": 4
