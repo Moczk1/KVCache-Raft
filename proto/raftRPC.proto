@@ -1,4 +1,5 @@
 syntax = "proto3";
+option cc_generic_services = true;
 package raftRpcProctoc; //所在的命名空间
 // 日志实体
 message LogEntry{
