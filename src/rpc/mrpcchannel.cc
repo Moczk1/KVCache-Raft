@@ -21,6 +21,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
                              Message *response, Closure *done) {
   if (m_clientFd == -1) {
     std::string errMsg;
+    // 保证连接正常
     bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
     if (!rt) {
       std::print("Function:{},重连接ip：{} port{}失败", __FUNCTION__, m_ip,
@@ -32,10 +33,13 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
                  m_port);
     }
 
+    // 获取服务器和方法名
     const google::protobuf::ServiceDescriptor *sd = method->service();
     std::string service_name = sd->name();
     std::string method_name = method->name();
 
+
+    // 获取参数长度
     uint32_t args_size{};
     std::string args_str;
     if (request->SerializePartialToString(&args_str)) {
@@ -45,11 +49,13 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
       return;
     }
 
+    // 创建自定义 rpc 消息格式的变量
     RPC::RpcHeader rpcHeader;
     rpcHeader.set_service_name(service_name);
     rpcHeader.set_method_name(method_name);
     rpcHeader.set_args_size(args_size);
-
+    
+    // 序列化到 string 格式
     std::string rpc_header_str;
     if (!rpcHeader.SerializePartialToString(&rpc_header_str)) {
       controller->SetFailed("Serialize rpc header errpr!");
@@ -62,10 +68,13 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
       google::protobuf::io::StringOutputStream string_output(&send_rpc_str);
       google::protobuf::io::CodedOutputStream coded_output(&string_output);
 
+      // 最开始区域 变长的 rpc_header 的长度
       coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
 
+      // 填写 紧跟的 rpc_header 内容
       coded_output.WriteString(rpc_header_str);
     }
+    // 添加消息参数
     send_rpc_str += args_str;
 
     // debug 调试信息
@@ -79,6 +88,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
                  args_size);
     }
 
+    // 发送消息
     while (-1 ==
            ::send(m_clientFd, send_rpc_str.c_str(), send_rpc_str.size(), 0)) {
       std::string info = std::format("send error! errno:{}", errno);
@@ -93,6 +103,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
       }
     }
 
+    // 接收返回结果
     char recv_buf[1024] = {0};
     int recv_size = 0;
     if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0))) {
@@ -103,6 +114,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
       return;
     }
 
+    // 解析返回结果
     if (!response->ParseFromArray(recv_buf, recv_size)) {
       std::string info = std::format("parse error! response_str:{}", recv_size);
       controller->SetFailed(info);
