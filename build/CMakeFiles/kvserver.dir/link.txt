@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/kvserver.dir/link.d CMakeFiles/kvserver.dir/src/raft.cc.o CMakeFiles/kvserver.dir/src/rpc/mrpcchannel.cc.o CMakeFiles/kvserver.dir/src/rpc/rpcheader.pb.cc.o CMakeFiles/kvserver.dir/proto/kvServerRPC.pb.cc.o CMakeFiles/kvserver.dir/proto/raftRPC.pb.cc.o -o kvserver  /usr/lib/x86_64-linux-gnu/libprotobuf.so
