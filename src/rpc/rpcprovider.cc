@@ -88,6 +88,14 @@ void RpcProvider::Run(int nodeIndex, short port) {
   m_eventLoop.loop();
 }
 
+void RpcProvider::OnConnection(const muduo::net::TcpConnectionPtr &conn) {
+  // 如果是新连接就什么都不干，即正常的接收连接即可
+  if (!conn->connected()) {
+    // 和rpc client的连接断开了
+    conn->shutdown();
+  }
+}
+
 void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
                             muduo::net::Buffer *buffer, muduo::Timestamp) {
 
