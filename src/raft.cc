@@ -1,3 +1,4 @@
+#pragma once
 #include "raft.h"
 #include "Constant.h"
 #include "RaftRpcUtil.h"
@@ -100,7 +101,7 @@ void raft::electionTimeOutTicker() {
                 << duration.count() << " 毫秒\033[0m" << std::endl;
     }
 
-    if (std::chrono::duration_cast<std::chrono::nanoseconds>(
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(
             m_lastElectionTime - wakeTime)
             .count() > 0) {
       continue;
@@ -257,8 +258,10 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
     m_currentTerm = request->term();
     m_voteForId = -1;
   } // 这里不返回是因为可能 req.term 更大，但是本地具有request没有的较旧的
-    // log。需要后续进行比较 index & term 两个参数
+    // log。需要后续进行比较 index & term 两个参数;
+    // 进入 3 的判断流程
 
+  // 3.
   assert(request->term() == m_currentTerm);
 
   int info[2] = {0};
@@ -305,6 +308,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
   }
 }
 
+// 重写框架的 调用接口
 void raft::RequestVote(google::protobuf::RpcController *controller,
                        const ::raftRpcProctoc::RequestVoteArgs *request,
                        ::raftRpcProctoc::RequestVoteReply *response,
@@ -312,8 +316,162 @@ void raft::RequestVote(google::protobuf::RpcController *controller,
   RequestVote(request, response);
   done->Run();
 }
-void raft::leaderHeartBeatTricker() {}
 
+void raft::leaderHeartBeatTricker() {
+  while (true) {
+    while (m_state != leader) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(HEARTBEATTIMEOUT));
+    }
+
+    static std::atomic<int32_t> atomicCount = 0;
+    std::chrono::duration<unsigned long int, std::milli> suitableSleepTime{};
+    std::chrono::system_clock::time_point wakeTime{};
+
+    {
+      std::unique_lock<std::mutex> lock(m_mtx);
+      wakeTime = now();
+      suitableSleepTime =
+          []() -> auto {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> dist(MIN_ELECTION_INTERVAL,
+                                                MAX_ELECTION_INTERVAL);
+        return std::chrono::milliseconds(dist(rng));
+      }() +
+                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                          m_lastElectionTime - wakeTime);
+    }
+
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(suitableSleepTime)
+            .count() > 1) {
+      std::cout << atomicCount
+                << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(
+                       suitableSleepTime)
+                       .count()
+                << " 毫秒\033[0m" << std::endl;
+      // 获取当前时间点
+      auto start = std::chrono::steady_clock::now();
+      std::this_thread::sleep_for(
+          std::chrono::duration<unsigned long int, std::milli>(
+              suitableSleepTime));
+      auto end = std::chrono::steady_clock::now();
+
+      std::chrono::duration<double, std::milli> duration = end - start;
+
+      std::cout << atomicCount
+                << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
+                << duration.count();
+      atomicCount++;
+    }
+    // 非 leader 状态转变为 leader
+    // 后会执行到这里，但在选举过程中会提前使用心跳发送 成为leader
+    // 的消息，这里就会返回。 后续都将跳过此条 if 判断。
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(
+            m_lastHearBeatTime - wakeTime)
+            .count() > 1)
+      continue;
+
+    doHeartBeat();
+  }
+}
+void raft::doHeartBeat() {
+  std::unique_lock<std::mutex> lock(m_mtx);
+  if (m_state != leader) // 非 leader 环境下直接退出此线程
+    return;
+
+  assert(m_state == leader);
+
+  std::print(
+      "{}:{}::\t\tLeader:{}] Leader的心跳定时器触发了且拿到mutex，开始发送AE\n",
+      __FUNCTION__, __LINE__, m_id);
+
+  // 正确返回的节点数量
+  auto appedNum = std::make_shared<int>(1);
+
+  for (int i = 0; i < m_peers.size(); i++) {
+    if (i == m_id)
+      continue;
+
+    std::print("{}:{}::\tLeader: {} Leader的心跳定时器触发了 index:{}\n",
+               __FUNCTION__, __LINE__, m_id, i);
+    assert(m_nextIndex[i] >= 1);
+
+    // 由于有持久化的数据，所需需要判断发送数据的来源
+    if (m_nextIndex[i] <= m_lastSnapshotIndex) {
+      std::thread t(&raft::leaderSendSnapShot, this, i);
+      t.detach();
+      continue; // 结束，暂时不处理 m_logs 的消息
+    }
+
+    assert(m_nextIndex[i] > m_lastSnapshotIndex);
+
+    int preLogIndexandTerm[2] = {-1, -1};
+    getPrevLogInfo(i, preLogIndexandTerm[0], preLogIndexandTerm[1]);
+
+    // 构造发送 request 的结构体
+    auto appendEntriesArgs =
+        std::make_shared<raftRpcProctoc::AppendEntriesArgs>();
+    appendEntriesArgs->set_term(m_currentTerm);
+    appendEntriesArgs->set_leaderid(m_id);
+    appendEntriesArgs->set_prevlogindex(preLogIndexandTerm[0]);
+    appendEntriesArgs->set_prevlogterm(preLogIndexandTerm[1]);
+    appendEntriesArgs->clear_entries();
+    appendEntriesArgs->set_leadercommit(m_commitIndex);
+    /**
+                 j          preLogIndexandTerm[0]
+                 |          |
+      ------------------------------------
+                |                        |
+                snapshotindex           m_logs[size-1].index
+
+    */
+    if (preLogIndexandTerm[0] != m_lastSnapshotIndex) { // 存在未持久化的数据
+      assert(preLogIndexandTerm[0] > m_lastSnapshotIndex);
+      int startIndex = preLogIndexandTerm[0] - m_lastSnapshotIndex - 1;
+      for (int j = startIndex + 1; j < m_logs.size(); j++) {
+        raftRpcProctoc::LogEntry *sendEntryPtr =
+            appendEntriesArgs->add_entries();
+        *sendEntryPtr = m_logs[j];
+      }
+    } else {
+      for (const auto &item : m_logs) {
+        raftRpcProctoc::LogEntry *sendEntryPtr =
+            appendEntriesArgs->add_entries();
+        *sendEntryPtr = item;
+      }
+    }
+
+    assert(appendEntriesArgs->prevlogindex() +
+               appendEntriesArgs->entries_size() ==
+           m_lastLogIndex);
+
+    auto appendEntriesReply =
+        std::make_shared<raftRpcProctoc::AppendEntriesReply>();
+
+    std::thread t(&raft::sendAppendEntries, this, i, appendEntriesArgs,
+                  appendEntriesReply, appedNum);
+    t.detach();
+  }
+
+  // 每次发送 更新心跳时间
+  m_lastHearBeatTime = now();
+}
+bool raft::sendAppendEntries(
+    int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
+    std::shared_ptr<int> appendNum) {
+
+  while (true) {
+  }
+}
+
+void AppendEntries(google::protobuf::RpcController *controller,
+                   const ::raftRpcProctoc::AppendEntriesArgs *request,
+                   ::raftRpcProctoc::AppendEntriesReply *response,
+                   ::google::protobuf::Closure *done) {}
+
+void raft::leaderSendSnapShot(int i) {}
 void raft::getLastLogIndexandTerm(int &index, int &term) {
   if (m_logs.empty()) {
     index = m_lastSnapshotIndex;

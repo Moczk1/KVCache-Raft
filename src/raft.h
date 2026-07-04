@@ -56,14 +56,16 @@ public:
                      const ::raftRpcProctoc::AppendEntriesArgs *request,
                      ::raftRpcProctoc::AppendEntriesReply *response,
                      ::google::protobuf::Closure *done) override;
+  void AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
+                     ::raftRpcProctoc::AppendEntriesReply *response);
   bool sendAppendEntries(int,
                          std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
                          std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
                          std::shared_ptr<int> appendNum);
-
   void doHeartBeat();
   void leaderHeartBeatTricker();
 
+  void leaderSendSnapShot(int);
   void InstallSnapshot(google::protobuf::RpcController *controller,
                        const ::raftRpcProctoc::InstallSnapshotRequest *request,
                        ::raftRpcProctoc::InstallSnapshotResponse *response,
@@ -79,8 +81,6 @@ public:
   bool sendRequestVote(int, std::shared_ptr<raftRpcProctoc::RequestVoteArgs>,
                        std::shared_ptr<raftRpcProctoc::RequestVoteReply>,
                        std::shared_ptr<int>);
-
-  void doElectionTricker();
   void doElection();
   void electionTimeOutTicker();
 
@@ -90,7 +90,19 @@ private:
   int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
 
   void getLastLogIndexandTerm(int &, int &);
+  inline void getPrevLogInfo(int server, int &index, int &term) {
+    if (m_nextIndex[server] == m_lastSnapshotIndex + 1) {
+      index = m_lastSnapshotIndex;
+      term = m_lastSnapshotTerm;
+      return;
 
+    } else {
+      auto nextIndex = m_nextIndex[server];
+      index = nextIndex - 1;
+      int v_index = index - m_lastSnapshotIndex - 1;
+      term = m_logs[v_index].logterm();
+    }
+  }
   //   inline std::vector<ApplyMsg> getApplyLogs() {
   //     std::vector<ApplyMsg> applyMsgs;
   //     myAssert(
