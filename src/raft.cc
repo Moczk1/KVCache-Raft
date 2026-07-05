@@ -747,7 +747,10 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 void raft::AppendEntries(google::protobuf::RpcController *controller,
                          const ::raftRpcProctoc::AppendEntriesArgs *request,
                          ::raftRpcProctoc::AppendEntriesReply *response,
-                         ::google::protobuf::Closure *done) {}
+                         ::google::protobuf::Closure *done) {
+  AppendEntries(request, response);
+  done->Run();
+}
 
 void raft::leaderSendSnapShot(int i) {}
 void raft::getLastLogIndexandTerm(int &index, int &term) {
