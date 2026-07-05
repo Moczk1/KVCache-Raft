@@ -5,6 +5,7 @@
 #include "raftRPC.pb.h"
 #include <cassert>
 #include <chrono>
+#include <complex>
 #include <memory>
 #include <mutex>
 #include <print>
@@ -66,7 +67,7 @@ void raft::electionTimeOutTicker() {
     std::chrono::duration<signed long int, std::milli> suitableSleepTime{};
     std::chrono::system_clock::time_point wakeTime{};
 
-    // 上锁防止调度, 计算时间
+    // 上锁防止调度. 计算时间
     {
       std::unique_lock<std::mutex> lock(m_mtx);
       wakeTime = now();
@@ -121,9 +122,12 @@ void raft::doElection() {
     std::print("{}:{}::\t\traft:{}选举定时器到期且不是leader，开始选举 \n",
                __FUNCTION__, __LINE__, m_id);
     // 准备工作
-    m_state = candidate;
-    m_currentTerm += 1;
-    m_voteForId = m_id;
+    {
+      std::unique_lock<std::mutex> lock(m_mtx);
+      m_state = candidate;
+      m_currentTerm += 1;
+      m_voteForId = m_id;
+    }
 
     // 持久化
     // persist();
@@ -167,7 +171,7 @@ bool raft::sendRequestVote(
              __FUNCTION__, __LINE__, m_id, i, end - start);
 
   if (!status) {
-    return status; // 返回失败标志
+    return status; // 返回连接失败标志
   }
 
   // 接收到消息，根据消息对自己的状态做修改
@@ -244,6 +248,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 
   // 持久化
   //   persist();
+
   /** 同样对应三种情况 */
   // 1.
   if (request->term() < m_currentTerm) {
@@ -364,9 +369,7 @@ void raft::leaderHeartBeatTricker() {
                 << duration.count();
       atomicCount++;
     }
-    // 非 leader 状态转变为 leader
-    // 后会执行到这里，但在选举过程中会提前使用心跳发送 成为leader
-    // 的消息，这里就会返回。 后续都将跳过此条 if 判断。
+
     if (std::chrono::duration_cast<std::chrono::milliseconds>(
             m_lastHearBeatTime - wakeTime)
             .count() > 1)
@@ -426,7 +429,8 @@ void raft::doHeartBeat() {
                 snapshotindex           m_logs[size-1].index
 
     */
-    if (preLogIndexandTerm[0] != m_lastSnapshotIndex) { // 存在未持久化的数据
+    if (preLogIndexandTerm[0] !=
+        m_lastSnapshotIndex) { // 请求的数据开始不是m_logs的开始
       assert(preLogIndexandTerm[0] > m_lastSnapshotIndex);
       int startIndex = preLogIndexandTerm[0] - m_lastSnapshotIndex - 1;
       for (int j = startIndex + 1; j < m_logs.size(); j++) {
@@ -434,7 +438,7 @@ void raft::doHeartBeat() {
             appendEntriesArgs->add_entries();
         *sendEntryPtr = m_logs[j];
       }
-    } else {
+    } else { // 直接全部复制发送 m_logs
       for (const auto &item : m_logs) {
         raftRpcProctoc::LogEntry *sendEntryPtr =
             appendEntriesArgs->add_entries();
@@ -458,18 +462,185 @@ void raft::doHeartBeat() {
   m_lastHearBeatTime = now();
 }
 bool raft::sendAppendEntries(
-    int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
-    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
+    int server, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
     std::shared_ptr<int> appendNum) {
 
-  while (true) {
+  std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc開始 ， "
+             "args->entries_size():{}\n",
+             __FUNCTION__, __LINE__, m_id, server, args->entries_size());
+
+  bool status = m_peers[server]->AppendEntries(args.get(), reply.get());
+  if (!status) {
+    std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
+               __FUNCTION__, __LINE__, m_id, server);
+    return false;
   }
+
+  std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n", __FUNCTION__,
+             __LINE__, m_id, server);
+
+  std::unique_lock<std::mutex> lock(m_mtx);
+
+  /** 对 reply 进行检查 */
+  // 3种情况
+  // 1.
+  if (reply->term() > m_currentTerm) // server 的事件时间比自己新，需要赶上
+  {
+    m_currentTerm = reply->term();
+    m_state = follower;
+    m_voteForId = -1;
+    return true;
+  } else if (reply->term() < m_currentTerm) // 2.
+  // server 的term 比自己小原则上leader应该会强制同步其他节点到自己的term上
+  // 这里不做任何处理，因为leader term 仍然大于 follower term
+  {
+    return true;
+  }
+
+  // 3.
+  assert(reply->term() == m_currentTerm);
+
+  if (m_state != leader)
+  // 短暂的瞬间发生了 leader 权限的转移 后续无需执行
+  {
+    return true;
+  }
+  // 日志同步失败
+  if (!reply->success()) {
+    // term 匹配的前提下，判单是 rpc 延迟导致的 term 相符
+    if (reply->updatenextindex() != -100) {
+      std::print("{}:{}::\t\trf{} "
+                 "返回的日志term相等，但是不匹配，回缩nextIndex[]：{}\n",
+                 __FUNCTION__, __LINE__, m_id, reply->updatenextindex());
+      m_nextIndex[server] = reply->updatenextindex(); // 失败不更新
+      // matchindex,重置nextindex，使得后续发送重新开始
+    }
+  } else { // success！
+    *appendNum += 1;
+    std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n", __FUNCTION__,
+               __LINE__, m_id, *appendNum);
+
+    // 对某个消息发送了多遍（心跳时就会再发送），那么一条消息会导致n次上涨
+    m_matchIndex[server] = std::max(
+        {m_matchIndex[server], args->prevlogindex() + args->entries_size()});
+    m_nextIndex[server] = m_matchIndex[server] + 1;
+
+    int lastLogIndexandTerm[2] = {0, 0};
+    getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
+
+    // 无论什么情况，远端需要的nextindex 都必须小于等于自己日志的index+1
+    assert(m_nextIndex[server] <= lastLogIndexandTerm[0] + 1);
+
+    if (*appendNum >= 1 + m_peers.size() / 2) {
+      *appendNum = 0; // 保证幂等性
+
+      // leader 只在有日志需要提交的前提下更新 commit index；
+      if (args->entries_size() > 0) {
+        // 打印日志信息
+        std::print("{}:{}::\t\targs->entries(args->entries_size()-1).logterm(){"
+                   "}, m_currentTerm{}",
+                   __FUNCTION__, __LINE__,
+                   args->entries(args->entries_size() - 1).logterm(),
+                   m_currentTerm);
+
+        if (args->entries(args->entries_size() - 1).logterm() ==
+            m_currentTerm) {
+          // 打印日志信息
+          std::print(
+              "{}:{}::\t\t當前term有log成功提交，更新leader的m_commitIndex "
+              "from{} to{}",
+              __FUNCTION__, __LINE__, m_commitIndex,
+              args->prevlogindex() + args->entries_size());
+          // 更新 commit index
+          m_commitIndex = std::max(
+              {m_commitIndex, args->prevlogindex() + args->entries_size()});
+        }
+      }
+
+      // 保证系统运行的正确性：无论何时 commitindex <= loglastindex
+      assert(m_commitIndex <= lastLogIndexandTerm[0]);
+    }
+  }
+  return true;
 }
 
-void AppendEntries(google::protobuf::RpcController *controller,
-                   const ::raftRpcProctoc::AppendEntriesArgs *request,
-                   ::raftRpcProctoc::AppendEntriesReply *response,
-                   ::google::protobuf::Closure *done) {}
+// 远端执行 rpc 请求
+void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
+                         ::raftRpcProctoc::AppendEntriesReply *response) {
+  // 上锁
+  std::unique_lock<std::mutex> lock(m_mtx);
+  // 无论何时都要检查 term
+
+  /** 3种情况 */
+  // 1.
+  if (request->term() < m_currentTerm) {
+    response->set_success(false);
+    response->set_term(m_currentTerm);
+    response->set_updatenextindex(-100);
+    std::print("{}:{}::\t\trf{} 拒绝了 因为Leader{}的term{}< rf{}.term{}\n",
+               __FUNCTION__, __LINE__, m_id, request->leaderid(),
+               request->term(), m_id, m_currentTerm);
+    return; // 直接返回：无效的AE，不需要重置定时器
+  }
+
+  // 持久化
+  // persist();
+
+  // 2.
+  if (request->term() > m_currentTerm) {
+    // 更新身份状态
+    m_state = follower;
+    m_currentTerm = request->term();
+    m_voteForId = -1;
+    // 这里不返回， 尝试接收leader 的日志
+  }
+
+  // 3.
+  assert(m_currentTerm == request->term());
+
+  m_state = follower;
+  // 接收到有效的 AE 重置选举超时计时器
+  m_lastElectionTime = now();
+
+  // 因为 rpc 请求可能在网络中阻塞；被接收的时候server 已经过去很久了
+  // 比较日志的新旧程度
+  /** 3种情况 */
+  int lastLogIndexandTerm[2] = {-1, -1};
+  getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
+  // 1.
+  if (request->prevlogindex() > lastLogIndexandTerm[0]) {
+    // leader 的日志没有把自己没有的部分全部发过来
+    // 保证完全的一致性
+    response->set_term(m_currentTerm);
+    response->set_success(false);
+    response->set_updatenextindex(lastLogIndexandTerm[0] + 1);
+    return;
+  } else if (request->prevlogindex() < m_lastSnapshotTerm) // 2.
+  {
+    // leader 发送日志为 leader 日志的持久化完成的区域
+    response->set_success(false);
+    response->set_term(m_currentTerm);
+    response->set_updatenextindex(m_lastSnapshotTerm + 1);
+    return;
+  } 
+
+
+
+
+
+
+
+
+
+
+
+
+}
+void raft::AppendEntries(google::protobuf::RpcController *controller,
+                         const ::raftRpcProctoc::AppendEntriesArgs *request,
+                         ::raftRpcProctoc::AppendEntriesReply *response,
+                         ::google::protobuf::Closure *done) {}
 
 void raft::leaderSendSnapShot(int i) {}
 void raft::getLastLogIndexandTerm(int &index, int &term) {
