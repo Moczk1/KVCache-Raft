@@ -623,20 +623,127 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
     response->set_term(m_currentTerm);
     response->set_updatenextindex(m_lastSnapshotTerm + 1);
     return;
-  } 
+  }
 
+  int loglastindexandterm[2] = {0, 0};
+  getLastLogIndexandTerm(loglastindexandterm[0], lastLogIndexandTerm[1]);
 
+  /**
+                request->logterm()
+                request->logindex()
+                |
+        ---------------------------------------
+        |       |                              |
+        snapshotindex                         lastlogindex
+                index
+                term
+  */
+  assert(request->prevlogindex() >= m_lastSnapshotIndex &&
+         request->prevlogindex() <= lastLogIndexandTerm[0]);
 
+  auto check = [&]() {
+    int logtermInM_logs;
+    if (request->prevlogindex() == m_lastSnapshotIndex) {
+      logtermInM_logs = m_lastSnapshotTerm;
+    } else {
+      int index = request->prevlogindex() - m_lastSnapshotIndex - 1;
+      logtermInM_logs = m_logs[index].logterm();
+    }
+    if (request->prevlogterm() == logtermInM_logs) {
+      return true;
+    } else {
+      return false;
+    }
+  }();
 
+  // request->logterm() == term;
+  if (check) {
+    // 要保证 request
+    // 的内容不是因为在网络中阻塞变旧。如果这种情况接受就会导致丢失真实commit的内容。
+    for (int i = 0; i < request->entries_size(); i++) {
+      auto log = request->entries(i);
+      // 新log （index）更大 直接添加
+      if (log.logindex() > lastLogIndexandTerm[0]) {
+        m_logs.push_back(log);
+      } else {
+        // 没有超过，需要进行匹配判断
+        int v_logindex = log.logindex() - lastLogIndexandTerm[0] - 1;
+        if (m_logs[v_logindex].logterm() == log.logterm() &&
+            m_logs[v_logindex].command() != log.command()) {
+          // 相同的 index、相同的 term、但是不同的 command 内容
+          std::print(
+              "{}:{}::\t\trf{}两节点logIndex{}和term{}相同，但是其command却不同"
+              "{}:{}:::{}:{}！！\n",
+              __FUNCTION__, __LINE__, m_id, log.logindex(), log.logterm(), m_id,
+              m_logs[v_logindex].command(), request->leaderid(), log.command());
+          exit(-1); // 程序出现严重逻辑问题
+        }
+        // 强制跟随 leader 的状态
+        if (m_logs[v_logindex].logterm() != log.logterm()) {
+          m_logs[v_logindex] = log;
+        }
+      } // if
+    } // for
 
+    getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
 
+    // 保证逻辑正确性
+    assert(lastLogIndexandTerm[0] >=
+           request->prevlogindex() + request->entries_size());
 
+    /** 下面判断 commit 参数 */
+    if (request->leadercommit() > m_commitIndex) {
+      m_commitIndex =
+          std::min({request->leadercommit(), lastLogIndexandTerm[0]});
+    }
 
+    assert(lastLogIndexandTerm[0] >= m_commitIndex);
 
+    response->set_term(m_commitIndex);
+    response->set_success(true);
+    return;
+  } else {
 
+    /**
+                request->logterm()
+                request->logindex()
+                |
+        ---------------------------------------
+        |       |                              |
+        snapshotindex                         lastlogindex
+                index
+                term
+    */
+    // request->logindex() = index
+    // `but` request->logterm() != term
 
+    response->set_updatenextindex(m_lastSnapshotIndex + 1);
 
+    for (int index = request->prevlogindex(); index >= m_lastSnapshotIndex;
+         index--) {
+      int i;
+      int term;
+      if (index == m_lastLogIndex) {
+        i = 0;
+        term = m_lastSnapshotTerm;
+      } else {
+        i = index - m_lastSnapshotIndex - 1;
+        term = m_logs[i].logterm();
+      }
+
+      if (term !=
+          m_logs[request->prevlogindex() - m_lastSnapshotIndex - 1].logterm()) {
+        response->set_updatenextindex(index + 1);
+        break;
+      }
+    }
+
+    response->set_success(false);
+    response->set_term(m_currentTerm);
+    return;
+  } // if
 }
+
 void raft::AppendEntries(google::protobuf::RpcController *controller,
                          const ::raftRpcProctoc::AppendEntriesArgs *request,
                          ::raftRpcProctoc::AppendEntriesReply *response,
