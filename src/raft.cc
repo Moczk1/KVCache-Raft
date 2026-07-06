@@ -1,11 +1,12 @@
 #pragma once
 #include "raft.h"
+#include "ApplyMsg.h"
 #include "Constant.h"
 #include "RaftRpcUtil.h"
 #include "raftRPC.pb.h"
+#include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <complex>
 #include <memory>
 #include <mutex>
 #include <print>
@@ -58,6 +59,29 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
   t2.detach();
   //   std::thread t3(&raft::applier)
 }
+
+// void raft::leaderUpdateCommitIndex() {
+//   m_commitIndex = m_lastLogIndex;
+
+//   int indexandterm[2] = {-1, -1};
+//   getLastLogIndexandTerm(indexandterm[0], indexandterm[1]);
+
+//   for (int index = indexandterm[0]; index >= m_lastLogIndex + 1; index--) {
+//     int sum = 0;
+//     for (int i = 0; i < m_peers.size(); i++) {
+//       if (i == m_id) {
+//         sum += 1;
+//         continue;
+//       }
+//       if (m_matchIndex[i] >= index) {
+//         sum += 1;
+//       }
+//     }
+//   }
+
+
+// }
+
 void raft::electionTimeOutTicker() {
   while (true) {
     while (m_state == leader) {
@@ -269,7 +293,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
   // 3.
   assert(request->term() == m_currentTerm);
 
-  int info[2] = {0};
+  int info[2] = {0, 0};
   getLastLogIndexandTerm(info[0], info[1]);
 
   // 只有此 term 下第一次投票 & candidate 的日志新的程度 >= 自己的日志 才会授票
@@ -752,7 +776,121 @@ void raft::AppendEntries(google::protobuf::RpcController *controller,
   done->Run();
 }
 
-void raft::leaderSendSnapShot(int i) {}
+// 本地发送 snapshot
+void raft::leaderSendSnapShot(int i) {
+
+  std::unique_lock<std::mutex> lock(m_mtx);
+
+  raftRpcProctoc::InstallSnapshotRequest args;
+  args.set_leaderid(m_id);
+  args.set_term(m_currentTerm);
+  args.set_lastsnapshotincludeindex(m_lastSnapshotIndex);
+  args.set_lastsnapshotincludeindex(m_lastSnapshotTerm);
+  args.set_data(m_persister->ReadSnapshot());
+
+  raftRpcProctoc::InstallSnapshotResponse reply;
+  lock.unlock();
+
+  bool ok = m_peers[i]->InstallSnapshot(&args, &reply);
+
+  if (!ok) {
+    return;
+  }
+
+  if (m_state != leader && m_currentTerm != args.term()) {
+    return;
+  }
+
+  // 中途发生 leader 的更改
+  if (reply.term() > m_currentTerm) {
+    m_currentTerm = reply.term();
+    m_voteForId = -1;
+    m_state = follower;
+
+    // 持久化
+    // persist();
+
+    m_lastElectionTime = now();
+    return;
+  }
+
+  m_matchIndex[i] = args.lastsnapshotincludeindex();
+  m_nextIndex[i] = m_matchIndex[i] + 1;
+}
+
+// 远端接收 snapshot 保存到本地的 snapshot
+void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
+                           raftRpcProctoc::InstallSnapshotResponse *reply) {
+  std::unique_lock<std::mutex> lock(m_mtx);
+  //   lock.unlock();
+  if (args->term() < m_currentTerm) {
+    // 本地的term 大于 leader 的 term 。
+    // leader 不再是 leader
+    reply->set_term(m_currentTerm);
+    return;
+  }
+
+  if (args->term() > m_currentTerm) {
+    m_currentTerm = args->term();
+    m_voteForId = -1;
+    m_state = follower;
+
+    // 持久化
+    // persist();
+  }
+
+  assert(args->term() == m_currentTerm);
+
+  m_state = follower;
+  m_lastElectionTime = now();
+
+  if (args->lastsnapshotincludeindex() <=
+      m_lastSnapshotIndex) { // leader 的snapshot index 小于自己的snapshot
+                             // 的index 是否需要返回正常的 reply 消息？
+    return;
+  }
+
+  int lastindexandterm[2];
+  getLastLogIndexandTerm(lastindexandterm[0], lastindexandterm[1]);
+
+  // 从内存缓存的日志中 删除这些内容
+  if (lastindexandterm[0] > args->lastsnapshotincludeindex()) {
+    int index = args->lastsnapshotincludeindex() - m_lastSnapshotIndex - 1;
+    m_logs.erase(m_logs.cbegin(), m_logs.begin() + index + 1);
+  } else {
+    m_logs.clear();
+  }
+
+  m_commitIndex = std::max(m_commitIndex, args->lastsnapshotincludeindex());
+  m_lastApplied = std::max(m_lastApplied, args->lastsnapshotincludeindex());
+  m_lastSnapshotIndex = args->lastsnapshotincludeindex();
+  m_lastSnapshotTerm = args->lastsnapshotincludeterm();
+
+  reply->set_term(m_currentTerm);
+
+  ApplyMsg msg;
+  msg.SnapshotValid = true;
+  msg.Snapshot = args->data();
+  msg.SnapshotIndex = args->lastsnapshotincludeindex();
+  msg.SnapshotTerm = args->lastsnapshotincludeterm();
+
+  std::thread t(&raft::pushMsgToKvServer, this, msg);
+  t.detach();
+
+  // m_persister->Save(persistData(), args->data());
+}
+
+void raft::pushMsgToKvServer(ApplyMsg msg) { applyChan->Push(msg); }
+
+void raft::InstallSnapshot(
+    google::protobuf::RpcController *controller,
+    const ::raftRpcProctoc::InstallSnapshotRequest *request,
+    ::raftRpcProctoc::InstallSnapshotResponse *response,
+    ::google::protobuf::Closure *done) {
+  InstallSnapshot(request, response);
+  done->Run();
+}
+
 void raft::getLastLogIndexandTerm(int &index, int &term) {
   if (m_logs.empty()) {
     index = m_lastSnapshotIndex;

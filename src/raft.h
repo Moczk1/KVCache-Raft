@@ -7,6 +7,7 @@
 #include "raftRPC.pb.h"
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/access.hpp>
 #include <chrono>
 #include <memory>
 #include <mutex>
@@ -18,7 +19,7 @@ namespace mraft {
 class raft : public raftRpcProctoc::raftRpc {
 private:
   /* data */
-  std::mutex m_mtx;
+  mutable std::mutex m_mtx;
   int m_id;
 
   std::vector<LogEntry> m_logs;
@@ -52,6 +53,7 @@ public:
             std::shared_ptr<Persister> persister,
             std::shared_ptr<LockQueue<ApplyMsg>> applyCh);
 
+  // AE
   void AppendEntries(google::protobuf::RpcController *controller,
                      const ::raftRpcProctoc::AppendEntriesArgs *request,
                      ::raftRpcProctoc::AppendEntriesReply *response,
@@ -65,12 +67,17 @@ public:
   void doHeartBeat();
   void leaderHeartBeatTricker();
 
+  // snapshot
   void leaderSendSnapShot(int);
+  void InstallSnapshot(const ::raftRpcProctoc::InstallSnapshotRequest *,
+                       ::raftRpcProctoc::InstallSnapshotResponse *);
   void InstallSnapshot(google::protobuf::RpcController *controller,
                        const ::raftRpcProctoc::InstallSnapshotRequest *request,
                        ::raftRpcProctoc::InstallSnapshotResponse *response,
                        ::google::protobuf::Closure *done) override;
+  void pushMsgToKvServer(ApplyMsg);
 
+  // vote
   void RequestVote(google::protobuf::RpcController *controller,
                    const ::raftRpcProctoc::RequestVoteArgs *request,
                    ::raftRpcProctoc::RequestVoteReply *response,
@@ -84,12 +91,34 @@ public:
   void doElection();
   void electionTimeOutTicker();
 
+  // 状态
+  // void leaderUpdateCommitIndex();
+
+  // 持久化
+  inline std::string persistData() {}
+
+  inline void persist() {
+    auto data = persistData();
+    m_persister->SaveRaftState(data);
+  }
+
+  // clerk
+  void applierTicker();
+  std::vector<ApplyMsg> getApplyLogs();
+  int getNewCommandIndex();
+  inline void GetState(int *term, bool *isLeader) const {
+    std::unique_lock<std::mutex> lock(m_mtx);
+    *term = m_currentTerm;
+    *isLeader = (m_state == leader);
+  }
+
 private:
   std::shared_ptr<Persister> m_persister;
   std::shared_ptr<LockQueue<ApplyMsg>> applyChan;
   int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
 
   void getLastLogIndexandTerm(int &, int &);
+
   inline void getPrevLogInfo(int server, int &index, int &term) {
     if (m_nextIndex[server] == m_lastSnapshotIndex + 1) {
       index = m_lastSnapshotIndex;
@@ -103,6 +132,27 @@ private:
       term = m_logs[v_index].logterm();
     }
   }
+
+  class BoostPersistRaftNode {
+  public:
+    friend class boost::serialization::access;
+
+    template <class T> void serialize(T &ar, const unsigned int version) {
+      ar & m_currentTerm;
+      ar & m_votedFor;
+      ar & m_lastSnapshotIncludeIndex;
+      ar & m_lastSnapshotIncludeTerm;
+      ar & m_logs;
+    }
+
+    int m_currentTerm;
+    int m_votedFor;
+    int m_lastSnapshotIncludeIndex;
+    int m_lastSnapshotIncludeTerm;
+    std::vector<std::string> m_logs;
+    std::unordered_map<std::string, int> umap;
+  };
+
   //   inline std::vector<ApplyMsg> getApplyLogs() {
   //     std::vector<ApplyMsg> applyMsgs;
   //     myAssert(
