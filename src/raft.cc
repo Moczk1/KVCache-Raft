@@ -1,4 +1,3 @@
-#pragma once
 #include "raft.h"
 #include "ApplyMsg.h"
 #include "Constant.h"
@@ -7,6 +6,8 @@
 #include <algorithm>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/string.hpp>
 #include <cassert>
 #include <chrono>
 #include <memory>

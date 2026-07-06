@@ -1,8 +1,6 @@
-#pragma once
 #include "RaftRpcUtil.h"
 #include "rpc/mrpcchannel.h"
 #include "rpc/mrpccontroller.h"
-#include <cstddef>
 #include <memory>
 
 namespace mraft {
