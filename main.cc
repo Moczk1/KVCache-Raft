@@ -1,25 +1,28 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "Option.h"
+
 namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
 
+  // struct option{
+  //     std::string log_file = "./log.txt";
+  //     std::string output = "./output.txt";
+  //     bool verbose = false;
+  // };
 
-  struct option{
-      std::string log_file = "./log.txt";
-      std::string output = "./output.txt";
-      bool verbose = false;
-  };
-
-  option opt;
+  mraft::Option opt;
 
   po::options_description desc("Allowed options");
 
-  desc.add_options()("help,h", "show help message")
-  ("log_file,l", po::value<std::string>(&opt.log_file),"log_file path, default = ./log.txt")
-  ("output,o", po::value<std::string>(&opt.output), "output file; default = ./output.txt")
-  ("verbose,v", po::bool_switch(&opt.verbose), "verbose mode; default = false");
+  desc.add_options()("help,h", "show help message")(
+      "log_file,l", po::value<std::string>(&opt.logFile),
+      "log file path, default = log.txt")(
+      "raftfile,r", po::value<std::string>(&opt.m_raftFileName),
+      "raftfile file path")("snapshot,s", po::value(&opt.m_snapshotFileName),
+                            "snapshot file path");
 
   po::variables_map vm;
 
@@ -32,7 +35,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  std::cout << "log_file = " << opt.log_file << std::endl;
-  std::cout << "output = " << opt.output << std::endl;
-  std::cout << "verbose = " << opt.verbose << std::endl;
+  std::cout << "log_file = " << opt.logFile << std::endl;
+  std::cout << "raft_file = " << opt.m_raftFileName << std::endl;
+  std::cout << "snapshot_file = " << opt.m_snapshotFileName << std::endl;
 }

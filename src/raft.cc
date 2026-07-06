@@ -5,6 +5,8 @@
 #include "RaftRpcUtil.h"
 #include "raftRPC.pb.h"
 #include <algorithm>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <cassert>
 #include <chrono>
 #include <memory>
@@ -12,6 +14,7 @@
 #include <print>
 #include <random>
 #include <ratio>
+#include <sstream>
 #include <thread>
 #include <unistd.h>
 
@@ -42,7 +45,9 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
     m_lastSnapshotTerm = 0;
     m_lastElectionTime = now();
     m_lastHearBeatTime = now();
-    // readPersist(m_persister->ReadRaftState());
+
+    readPersist(m_persister->ReadRaftState());
+
     if (m_lastSnapshotIndex > 0) {
       m_lastApplied = m_lastSnapshotIndex;
     }
@@ -59,28 +64,6 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
   t2.detach();
   //   std::thread t3(&raft::applier)
 }
-
-// void raft::leaderUpdateCommitIndex() {
-//   m_commitIndex = m_lastLogIndex;
-
-//   int indexandterm[2] = {-1, -1};
-//   getLastLogIndexandTerm(indexandterm[0], indexandterm[1]);
-
-//   for (int index = indexandterm[0]; index >= m_lastLogIndex + 1; index--) {
-//     int sum = 0;
-//     for (int i = 0; i < m_peers.size(); i++) {
-//       if (i == m_id) {
-//         sum += 1;
-//         continue;
-//       }
-//       if (m_matchIndex[i] >= index) {
-//         sum += 1;
-//       }
-//     }
-//   }
-
-
-// }
 
 void raft::electionTimeOutTicker() {
   while (true) {
@@ -154,7 +137,7 @@ void raft::doElection() {
     }
 
     // 持久化
-    // persist();
+    persist();
 
     // 准备发送数据
     std::shared_ptr<int> votedNum = std::make_shared<int>(1);
@@ -211,8 +194,9 @@ bool raft::sendRequestVote(
     m_currentTerm = reply->term();
     m_state = follower;
     m_voteForId = -1; //
+
     // 持久化
-    // persist();
+    persist();
 
     return true;
   }
@@ -259,7 +243,7 @@ bool raft::sendRequestVote(
     t.detach();
 
     // 持久化
-    // persist();
+    persist();
   }
   return true;
 }
@@ -609,7 +593,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
   }
 
   // 持久化
-  // persist();
+  persist();
 
   // 2.
   if (request->term() > m_currentTerm) {
@@ -889,6 +873,55 @@ void raft::InstallSnapshot(
     ::google::protobuf::Closure *done) {
   InstallSnapshot(request, response);
   done->Run();
+}
+
+std::string raft::persistData() {
+  // 持久化辅助类
+  BoostPersistRaftNode boostPersistRaftNode;
+  boostPersistRaftNode.m_currentTerm = m_currentTerm;
+  boostPersistRaftNode.m_votedFor = m_voteForId;
+  boostPersistRaftNode.m_lastSnapshotIncludeIndex = m_lastSnapshotIndex;
+  boostPersistRaftNode.m_lastSnapshotIncludeTerm = m_lastSnapshotTerm;
+  for (const auto &a : m_logs) {
+    boostPersistRaftNode.m_logs.push_back(a.SerializeAsString());
+  }
+
+  // 输出流
+  std::stringstream ss;
+  boost::archive::text_oarchive oa(ss);
+
+  // 输出
+  oa << boostPersistRaftNode;
+  return ss.str();
+}
+
+void raft::readPersist(std::string data) {
+  if (data.empty()) {
+    return;
+  }
+
+  std::stringstream iss(data);
+  boost::archive::text_iarchive ia(iss);
+
+  // 辅助类存储中间信息
+  BoostPersistRaftNode boostPersistRaftNode;
+  ia >> boostPersistRaftNode;
+
+  // 写入 raft 结构
+  m_currentTerm = boostPersistRaftNode.m_currentTerm;
+  m_voteForId = boostPersistRaftNode.m_votedFor;
+  m_lastSnapshotTerm = boostPersistRaftNode.m_lastSnapshotIncludeTerm;
+  m_lastSnapshotIndex = boostPersistRaftNode.m_lastSnapshotIncludeIndex;
+
+  // 清空容器
+  m_logs.clear();
+
+  // 写入容器
+  for (const auto &a : boostPersistRaftNode.m_logs) {
+    raftRpcProctoc::LogEntry logEntry;
+    logEntry.ParseFromString(a);
+    m_logs.push_back(logEntry);
+  }
 }
 
 void raft::getLastLogIndexandTerm(int &index, int &term) {

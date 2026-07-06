@@ -95,12 +95,16 @@ public:
   // void leaderUpdateCommitIndex();
 
   // 持久化
-  inline std::string persistData() {}
-
+  void readPersist(std::string data);
+  std::string persistData();
   inline void persist() {
     auto data = persistData();
     m_persister->SaveRaftState(data);
   }
+
+  void Start();
+
+
 
   // clerk
   void applierTicker();
