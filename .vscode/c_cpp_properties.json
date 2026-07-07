@@ -2,21 +2,12 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}",
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/proto/",
-                "${workspaceFolder}/proto/**",
-                "${workspaceFolder}",
-                "/usr/include",
-                "/usr/local/include"
-
-            ],
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "defines": [],
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c23",
             "cppStandard": "c++23",
-            "intelliSenseMode": "linux-clang-x64"        
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4

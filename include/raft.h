@@ -5,6 +5,7 @@
 #include "Persister.h"
 #include "RaftRpcUtil.h"
 #include "raftRPC.pb.h"
+#include "util.h"
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -108,13 +109,14 @@ public:
     auto data = persistData();
     m_persister->SaveRaftState(data);
   }
-  void Start();
+  void Start(Op op, int &index, int &term, bool &isLeader);
   int GetRaftStateSize();
 
   /** 客户端通信 */
 private:
   std::shared_ptr<LockQueue<ApplyMsg>> applyChan;
   int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
+
 public:
   // clerk
   void applierTicker();

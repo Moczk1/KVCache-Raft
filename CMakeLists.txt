@@ -14,8 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Protobuf REQUIRED)
 
 include_directories(
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/proto
+    ${PROJECT_SOURCE_DIR}/include
 )
 
 # -------------------------

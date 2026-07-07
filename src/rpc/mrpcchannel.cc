@@ -1,4 +1,3 @@
-#pragma once
 #include <cerrno>
 #include <cstdint>
 #include <format>
@@ -13,7 +12,7 @@
 
 #include "Constant.h"
 #include "mrpcchannel.h"
-#include "rpc/rpcheader.pb.h"
+#include "rpcheader.pb.h"
 
 namespace mraft {
 void Mrpcchannel::CallMethod(const MethodDescriptor *method,

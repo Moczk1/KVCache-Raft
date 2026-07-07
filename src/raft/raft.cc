@@ -901,6 +901,38 @@ std::string raft::persistData() {
   return ss.str();
 }
 
+void raft::Start(Op op, int &index, int &term, bool &isLeader) {
+  std::unique_lock<std::mutex> lock(m_mtx);
+
+  if (m_state != leader) {
+    std::print("{}:{}::\t\trf{} is not leader!\n", __FUNCTION__, __LINE__,
+               m_id);
+    index = -1;
+    term = -1;
+    isLeader = false;
+    return;
+  }
+
+  raftRpcProctoc::LogEntry logEntry;
+  logEntry.set_command(op.asString());
+  int indexandterm[2];
+  getLastLogIndexandTerm(indexandterm[0], indexandterm[1]);
+  logEntry.set_logindex(indexandterm[0] + 1);
+  logEntry.set_logterm(m_currentTerm);
+  m_logs.emplace_back(logEntry);
+
+  getLastLogIndexandTerm(indexandterm[0], indexandterm[1]);
+
+  std::print("{}:{}::\t\trf{} lastLogIndex:,command:{}\n", __FUNCTION__,
+             __LINE__, m_id, op.asString());
+
+  persist();
+
+  index = logEntry.logindex();
+  term = logEntry.logterm();
+  isLeader = true;
+}
+
 int raft::GetRaftStateSize() { return m_persister->RaftStateSize(); }
 
 void raft::readPersist(std::string data) {

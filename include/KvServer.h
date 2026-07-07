@@ -2,7 +2,6 @@
 
 #include "ApplyMsg.h"
 #include "LockQueue.h"
-#include "RaftRpcUtil.h"
 #include "kvServerRPC.pb.h"
 #include "raft.h"
 #include "skipList.h"
@@ -10,6 +9,8 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/unordered_map.hpp>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -24,8 +25,11 @@ private:
   int m_id;
 
   std::shared_ptr<raft> m_raftNode;
+
+  // kvServer和raft节点的通信管道
   std::shared_ptr<LockQueue<ApplyMsg>> applyChan;
 
+  // snapshot if log grows this big
   int m_maxRaftState;
 
   std::string m_serializedKVDate;
@@ -59,16 +63,19 @@ public:
 
   bool ifRequestDuplicate(std::string ClientId, int RequestId);
 
+  // clerk 使用RPC远程调用
   void PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
                  raftKVRpcProctoc::PutAppendReply *reply);
 
+  // 一直等待raft传来的 applyCh
   void ReadRaftApplyCommandLoop();
 
   void ReadSnapShotToInstall(std::string snapshot);
 
   bool SendMessageToWaitChan(const Op &op, int raftIndex);
 
-  void ifNeedToSendSnapShotCommand(int rafIndex, int proportion);
+  // 检查是否需要制作快照，需要的话就向raft之下制作快照
+  void IfNeedToSendSnapShotCommand(int rafIndex, int proportion);
 
   void GetSnapSHotFromRaft(ApplyMsg message);
 
@@ -92,19 +99,16 @@ private:
     ar & m_last_RequestId;
   }
 
-
-  std::string getSnapShotDate()
-  {
+  std::string getSnapShotDate() {
     m_serializedKVDate = m_skipList.dump_file();
     std::stringstream ss;
     boost::archive::text_oarchive oa(ss);
     oa << *this;
     m_serializedKVDate.clear();
-    return  ss.str();
+    return ss.str();
   }
 
-  void parseFromString(const std::string & str)
-  {
+  void parseFromString(const std::string &str) {
     std::stringstream ss(str);
     boost::archive::text_iarchive ia(ss);
 
@@ -112,6 +116,5 @@ private:
     m_skipList.load_file(m_serializedKVDate);
     m_serializedKVDate.clear();
   }
-
 };
 } // namespace mraft
