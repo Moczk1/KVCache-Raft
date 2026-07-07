@@ -3,11 +3,13 @@
 #include "Constant.h"
 #include "RaftRpcUtil.h"
 #include "raftRPC.pb.h"
+#include "util.h"
+
 #include <algorithm>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
 #include <cassert>
 #include <chrono>
 #include <memory>
@@ -138,7 +140,7 @@ void raft::doElection() {
     }
 
     // 持久化
-    persist();
+    DeferClass defer([this] { persist(); });
 
     // 准备发送数据
     std::shared_ptr<int> votedNum = std::make_shared<int>(1);
@@ -197,7 +199,7 @@ bool raft::sendRequestVote(
     m_voteForId = -1; //
 
     // 持久化
-    persist();
+    DeferClass defer([this] { persist(); });
 
     return true;
   }
@@ -244,7 +246,7 @@ bool raft::sendRequestVote(
     t.detach();
 
     // 持久化
-    persist();
+    DeferClass defer([this] { persist(); });
   }
   return true;
 }
@@ -255,9 +257,6 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 
   std::unique_lock<std::mutex> lock(m_mtx);
 
-  // 持久化
-  //   persist();
-
   /** 同样对应三种情况 */
   // 1.
   if (request->term() < m_currentTerm) {
@@ -266,11 +265,14 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
     response->set_votestate(expired);
     return;
   }
+
   // 2.
   if (request->term() > m_currentTerm) {
     m_state = follower;
     m_currentTerm = request->term();
     m_voteForId = -1;
+    // 持久化
+    DeferClass defer([this] { persist(); });
   } // 这里不返回是因为可能 req.term 更大，但是本地具有request没有的较旧的
     // log。需要后续进行比较 index & term 两个参数;
     // 进入 3 的判断流程
@@ -301,9 +303,12 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
     response->set_term(m_currentTerm);
     response->set_votegranted(false);
     response->set_votestate(voted);
+
+    DeferClass defer([this] { persist(); });
     return;
   }
 
+  DeferClass defer([this] { persist(); });
   // 检查过 request 的日志确实新
   // 但需要保证此时的 term 时第一次授票，防止同term下的多次授票
   if (m_voteForId != -1 &&
@@ -594,7 +599,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
   }
 
   // 持久化
-  persist();
+  DeferClass defer([this] { persist(); });
 
   // 2.
   if (request->term() > m_currentTerm) {
@@ -793,7 +798,7 @@ void raft::leaderSendSnapShot(int i) {
     m_state = follower;
 
     // 持久化
-    // persist();
+    DeferClass defer([this] { persist(); });
 
     m_lastElectionTime = now();
     return;
@@ -821,7 +826,7 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
     m_state = follower;
 
     // 持久化
-    // persist();
+    DeferClass defer([this] { persist(); });
   }
 
   assert(args->term() == m_currentTerm);
@@ -895,6 +900,8 @@ std::string raft::persistData() {
   oa << boostPersistRaftNode;
   return ss.str();
 }
+
+int raft::GetRaftStateSize() { return m_persister->RaftStateSize(); }
 
 void raft::readPersist(std::string data) {
   if (data.empty()) {

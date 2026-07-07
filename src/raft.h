@@ -94,18 +94,28 @@ public:
   // 状态
   // void leaderUpdateCommitIndex();
 
+  /** 持久化 */
+private:
+  std::shared_ptr<Persister> m_persister;
+
+public:
   // 持久化
   void readPersist(std::string data);
   std::string persistData();
+
   inline void persist() {
+
     auto data = persistData();
     m_persister->SaveRaftState(data);
   }
-
   void Start();
+  int GetRaftStateSize();
 
-
-
+  /** 客户端通信 */
+private:
+  std::shared_ptr<LockQueue<ApplyMsg>> applyChan;
+  int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
+public:
   // clerk
   void applierTicker();
   std::vector<ApplyMsg> getApplyLogs();
@@ -117,10 +127,6 @@ public:
   }
 
 private:
-  std::shared_ptr<Persister> m_persister;
-  std::shared_ptr<LockQueue<ApplyMsg>> applyChan;
-  int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
-
   void getLastLogIndexandTerm(int &, int &);
 
   inline void getPrevLogInfo(int server, int &index, int &term) {
