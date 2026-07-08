@@ -17,12 +17,10 @@ int main(int argc, char *argv[]) {
 
   po::options_description desc("Allowed options");
 
-  desc.add_options()("help,h", "show help message")(
-      "log_file,l", po::value<std::string>(&opt.logFile),
-      "log file path, default = log.txt")(
-      "raftfile,r", po::value<std::string>(&opt.m_raftFileName),
-      "raftfile file path")("snapshot,s", po::value(&opt.m_snapshotFileName),
-                            "snapshot file path");
+  desc.add_options()("help,h", "show help message")
+  	  ("log_file,l", po::value<std::string>(&opt.logFile),"log file path, default = log.txt")
+	  ("raftfile,r", po::value<std::string>(&opt.m_raftFileName),"raftfile file path")
+	  ("snapshot,s", po::value(&opt.m_snapshotFileName),"snapshot file path");
 
   po::variables_map vm;
 

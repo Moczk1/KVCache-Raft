@@ -481,15 +481,15 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 		    provider.NotifyService(this->m_raftNode.get());
 		    provider.Run(m_id, port);
 	    });
-
 	t.detach();
+
 	std::cout << "raftServer node:" << m_id
 	          << " start to sleep to wait all ohter raftnode start!!!!"
 	          << std::endl;
 	sleep(6);
-
 	std::cout << "raftServer node:" << m_id
 	          << " wake up!!!! start to connect other raftnode" << std::endl;
+
 
 	MrpcConfig config;
 
@@ -523,8 +523,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 		std::string otherNodeIp = ipPort[i].first;
 		short otherNodePort = ipPort[i].second;
 
-		auto *rpc = new RaftRpcUtil(otherNodeIp, otherNodePort);
-		servers.push_back(std::shared_ptr<RaftRpcUtil>(rpc));
+		servers.push_back(std::make_shared<RaftRpcUtil>(otherNodeIp, otherNodePort));
 		std::print("node:{} 连接 node {} success!\n", m_id, i);
 	}
 	sleep(ipPort.size() - m_id);

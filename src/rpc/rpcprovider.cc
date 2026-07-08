@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <functional>
 #include <google/protobuf/io/coded_stream.h>
@@ -54,7 +55,8 @@ void RpcProvider::NotifyService(google::protobuf::Service *service)
 void RpcProvider::Run(int nodeIndex, short port)
 {
 	char *ipC;
-	char hname[128] = {0};
+	char hname[128];
+	::memset(hname, 0, sizeof hname);
 	struct hostent *hent;
 
 	gethostname(hname, sizeof hname);

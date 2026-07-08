@@ -13,6 +13,9 @@ constexpr int MAX_ELECTION_INTERVAL = 500 * SCALE;
 
 constexpr int HEARTBEAT_INTERVAL = 30 * SCALE;
 
+const int ApplyInterval = 10 * SCALE;     //
+
+
 const int CONSENSUS_TIMEOUT = 500 * SCALE; // ms
 
 const std::string OK = "OK";

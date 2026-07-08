@@ -21,7 +21,7 @@ template <class F> class DeferClass
 	F m_func;
 };
 
-std::string GetTime()
+inline std::string GetTime()
 {
 	std::string time_s = "";
 	time_t now = time(nullptr);
@@ -42,7 +42,7 @@ class Op
 	std::string Key;
 	std::string Value;
 	std::string ClientId; // 客户端号码
-	int RequestId; // 客户端号码请求的Request的序列号，为了保证线性一致性
+	int RequestId;        // 客户端号码请求的Request的序列号，为了保证线性一致性
 	               //  IfDuplicate bool // Duplicate command can't be applied
 	               //  twice , but only for PUT and APPEND
 

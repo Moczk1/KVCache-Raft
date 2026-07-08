@@ -1061,6 +1061,60 @@ std::string raft::persistData()
 	return ss.str();
 }
 
+void raft::applierTicker()
+{
+	while (true)
+	{
+		std::unique_lock<std::mutex> lock(m_mtx);
+		if (m_state == leader)
+		{
+			std::print("{}:{}raft{} m_lastApplied{} m_commitIndex{}\n",
+			    GetTime(), __func__, m_id, m_lastApplied, m_commitIndex);
+		}
+
+		auto applyMsgs = getApplyLogs();
+
+		lock.unlock();
+
+		if (!applyMsgs.empty())
+		{
+			// [func- Raft::applierTicker()-raft{%d}]
+			// 向kvserver報告的applyMsgs長度爲：{%d}", m_me, applyMsgs.size()
+			std::print("{}:{}raft{} 向kvserver報告的applyMsgs長度爲:{}\n",
+			    GetTime(), __func__, m_id, applyMsgs.size());
+		}
+		for (const auto &msg : applyMsgs)
+		{
+			applyChan->Push(msg);
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(ApplyInterval));
+	}
+}
+
+std::vector<ApplyMsg> raft::getApplyLogs()
+{
+	std::vector<ApplyMsg> ret;
+	int lastLogIndex = -1;
+	int _ = -1;
+	getLastLogIndexandTerm(lastLogIndex, _);
+	assert(m_commitIndex <= lastLogIndex);
+
+	while (m_lastApplied < m_commitIndex)
+	{
+		m_lastApplied++;
+		assert(m_logs[m_lastApplied - m_lastSnapshotIndex - 1].logindex() ==
+		       m_lastApplied);
+		ApplyMsg msg;
+		msg.CommandValid = true;
+		msg.SnapshotValid = false;
+		msg.Command = m_logs[m_lastApplied - m_lastSnapshotIndex - 1].command();
+		msg.CommandIndex = m_lastApplied;
+		ret.emplace_back(msg);
+	}
+
+	return ret;
+}
+
 void raft::Start(Op op, int &index, int &term, bool &isLeader)
 {
 	std::unique_lock<std::mutex> lock(m_mtx);

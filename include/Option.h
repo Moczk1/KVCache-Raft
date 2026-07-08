@@ -9,5 +9,10 @@ public:
   std::string m_snapshotFileName = "snapshot.txt";
 
   std::string logFile = "log.txt";
+
+
+  int nodeNum = 3;
+
+  std::string configFileName;
 };
 } // namespace mraft
