@@ -1,4 +1,4 @@
-
+#pragma once
 
 #include "ApplyMsg.h"
 #include "LockQueue.h"
@@ -22,9 +22,7 @@ namespace mraft {
 class KvServer : public raftKVRpcProctoc::kvServerRpc {
 
 private:
-  const std::string OK = "OK";
-  const std::string ErrNoKey = "ErrNoKey";
-  const std::string ErrWrongLeader = "ErrWrongLeader";
+
 
   std::mutex m_mtx;
   int m_id;

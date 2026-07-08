@@ -1,5 +1,5 @@
-#ifndef APPLYMSG_H
-#define APPLYMSG_H
+#pragma once
+
 #include <string>
 class ApplyMsg {
  public:
@@ -23,5 +23,3 @@ class ApplyMsg {
 
         };
 };
-
-#endif  // APPLYMSG_H
