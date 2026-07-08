@@ -12,4 +12,6 @@ namespace mraft
     constexpr int MAX_ELECTION_INTERVAL = 500 * SCALE;
 
     constexpr int HEARTBEAT_INTERVAL = 30 * SCALE;
+
+    const int CONSENSUS_TIMEOUT = 500 * SCALE;  // ms
 }

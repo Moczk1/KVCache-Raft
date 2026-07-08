@@ -10,8 +10,8 @@
 
 template <class F> class DeferClass {
 public:
-  DeferClass(F &&f) : m_func(std::forward<F>(f)) {}
-  DeferClass(const F &f) : m_func(f) {}
+  explicit DeferClass(F &&f) : m_func(std::forward<F>(f)) {}
+  explicit DeferClass(const F &f) : m_func(f) {}
   ~DeferClass() { m_func(); }
 
   DeferClass(const DeferClass &e) = delete;
