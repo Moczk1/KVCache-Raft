@@ -22,7 +22,6 @@ include_directories(
 # -------------------------
 file(GLOB_RECURSE SRC_FILES
     src/*.cc
-    src/*.h
 )
 
 file(GLOB PROTO_SRCS

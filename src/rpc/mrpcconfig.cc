@@ -54,7 +54,7 @@ void MrpcConfig::LoadConfigFile(const char *config_file)
 }
 
 // 查询配置项信息
-std::string MprpcConfig::Load(const std::string &key)
+std::string MrpcConfig::Load(const std::string &key)
 {
 	auto it = m_configMap.find(key);
 	if (it == m_configMap.end())
@@ -65,7 +65,7 @@ std::string MprpcConfig::Load(const std::string &key)
 }
 
 // 去掉字符串前后的空格
-void MprpcConfig::Trim(std::string &src_buf)
+void MrpcConfig::Trim(std::string &src_buf)
 {
 	int idx = src_buf.find_first_not_of(' ');
 	if (idx != -1)

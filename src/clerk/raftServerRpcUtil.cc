@@ -3,6 +3,7 @@
 //
 #include "raftServerRpcUtil.h"
 #include "mrpcchannel.h"
+#include "mrpccontroller.h"
 
 namespace mraft
 {
