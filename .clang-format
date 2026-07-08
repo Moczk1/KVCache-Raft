@@ -1,2 +1,10 @@
-CompileFlags:
-  CompilationDatabase: build
+BasedOnStyle: LLVM
+
+BreakBeforeBraces: Allman
+
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+
+AlignAfterOpenBracket: DontAlign
+ContinuationIndentWidth: 4

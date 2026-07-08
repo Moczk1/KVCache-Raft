@@ -2,6 +2,7 @@
 
 #include "ApplyMsg.h"
 #include "LockQueue.h"
+#include "Option.h"
 #include "kvServerRPC.pb.h"
 #include "raft.h"
 #include "skipList.h"
@@ -50,7 +51,7 @@ private:
 
 public:
   KvServer() = delete;
-  KvServer(int id, int maxraftstate, std::string nodeInforFileName, short port);
+  KvServer(int id, int maxraftstate, std::string nodeInforFileName, short port, Option);
 
   void StartKVServer();
 
@@ -81,12 +82,10 @@ public:
   // 检查是否需要制作快照，需要的话就向raft之下制作快照
   void IfNeedToSendSnapShotCommand(int rafIndex, int proportion);
 
-  void GetSnapSHotFromRaft(ApplyMsg message);
+  void GetSnapShotFromRaft(ApplyMsg message);
 
   std::string MakeSnapShot();
 
-private:
-  std::string getTime();
 
 public:
   void PutAppend(google::protobuf::RpcController *controller,
@@ -106,7 +105,7 @@ private:
     ar & m_last_RequestId;
   }
 
-  std::string getSnapShotDate() {
+  std::string getSnapShotData() {
     m_serializedKVDate = m_skipList.dump_file();
     std::stringstream ss;
     boost::archive::text_oarchive oa(ss);

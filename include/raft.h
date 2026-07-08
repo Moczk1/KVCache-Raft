@@ -77,6 +77,7 @@ public:
                        ::raftRpcProctoc::InstallSnapshotResponse *response,
                        ::google::protobuf::Closure *done) override;
   void pushMsgToKvServer(ApplyMsg);
+  void Snapshot(int index, std::string snapshot);
 
   // vote
   void RequestVote(google::protobuf::RpcController *controller,
