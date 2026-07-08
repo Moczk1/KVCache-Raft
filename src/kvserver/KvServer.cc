@@ -2,6 +2,8 @@
 #include "Constant.h"
 #include "LockQueue.h"
 #include "util.h"
+#include <cstddef>
+#include <ctime>
 #include <format>
 #include <mutex>
 #include <print>
@@ -167,6 +169,7 @@ void KvServer::GetCommandFromRaft(ApplyMsg message) {
     return;
   }
 
+  // State Machine (KVServer solute the duplicate problem)
   // duplicate command will not be exed
   if (!ifRequestDuplicate(op.ClientId, op.RequestId)) {
     // excute command
@@ -197,5 +200,112 @@ bool KvServer::ifRequestDuplicate(std::string ClientId, int RequestId) {
   }
 
   return RequestId <= m_last_RequestId[ClientId];
+}
+
+void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
+                         raftKVRpcProctoc::PutAppendReply *reply) {
+  Op op;
+  op.Operation = args->op();
+  op.Key = args->key();
+  op.Value = args->value();
+  op.ClientId = args->clientid();
+  op.RequestId = args->requestid();
+
+  int raftIndex = -1;
+  int _ = -1;
+  bool isLeader = false;
+
+  m_raftNode->Start(op, raftIndex, _, isLeader);
+
+  if (!isLeader) {
+    if (DEBUG) {
+      std::string info = std::format(
+          "[func -KvServer::PutAppend -kvserver{}]From Client {} "
+          "(Request {} To Server {} key {}, raftIndex {}, but "
+          "not leader",
+          m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
+
+      std::print("{}{}\n", getTime(), info);
+    }
+
+    reply->set_err(ErrWrongLeader);
+    return;
+  }
+
+  if (DEBUG) {
+    std::string info = std::format(
+        "[func -KvServer::PutAppend -kvserver{}]From Client {} (Request {}) "
+        "To Server {}, key {}, raftIndex {} , but "
+        "not leader",
+        m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
+    std::print("{}{}\n", getTime(), info);
+  }
+
+  std::unique_lock<std::mutex> lock(m_mtx);
+
+  if (waitApplyCh.find(raftIndex) == waitApplyCh.end()) {
+    waitApplyCh.insert(std::make_pair(raftIndex, new LockQueue<Op>));
+  }
+
+  auto chForRaftIndex = waitApplyCh[raftIndex];
+
+  lock.unlock();
+
+  Op raftCommitOp;
+
+  if (!chForRaftIndex->timeOutPop(CONSENSUS_TIMEOUT, &raftCommitOp)) {
+    if (DEBUG) {
+      std::string info = std::format(
+          "[func -KvServer::PutAppend -kvserver{}]TIMEOUT PUTAPPEND !!!! "
+          "Server {} , get Command <-- Index:{} , "
+          "ClientId {}, RequestId {}, Opreation {} Key :{}, Value :{}",
+          m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
+          op.Key, op.Value);
+      std::print("{}{}\n", getTime(), info);
+    }
+
+    if (ifRequestDuplicate(op.ClientId, op.RequestId)) {
+      reply->set_err(OK); // 超时了,但因为是重复的请求，返回ok
+    } else {
+      reply->set_err(ErrWrongLeader); // 这里返回这个的目的让clerk重新尝试
+    }
+  } else {
+    if (DEBUG) {
+      std::string info = std::format(
+          "[func -KvServer::PutAppend "
+          "-kvserver{}]WaitChanGetRaftApplyMessage<--Server {} , get Command "
+          "<-- Index:{} , "
+          "ClientId {}, RequestId {}, Opreation {}, Key :{}, Value :{}",
+          m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
+          op.Key, op.Value);
+      std::print("{}{}\n", getTime(), info);
+    }
+
+    if (raftCommitOp.ClientId == op.ClientId &&
+        op.RequestId == raftCommitOp.RequestId) {
+      reply->set_err(OK);
+    } else {
+      reply->set_err(ErrWrongLeader);
+    }
+  }
+
+  lock.lock();
+  auto tmp = waitApplyCh[raftIndex];
+  waitApplyCh.erase(raftIndex);
+  delete tmp;
+  lock.unlock();
+}
+
+std::string KvServer::getTime() {
+  std::string time_s = "";
+  if (DEBUG) {
+    time_t now = time(nullptr);
+    tm *nowtm = localtime(&now);
+    time_s = std::format("[{}-{}-{}-{}-{}-{}] ", nowtm->tm_year + 1900,
+                         nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour,
+                         nowtm->tm_min, nowtm->tm_sec);
+    return time_s;
+  }
+  return "";
 }
 } // namespace mraft

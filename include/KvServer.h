@@ -85,6 +85,9 @@ public:
 
   std::string MakeSnapShot();
 
+private:
+  std::string getTime();
+
 public:
   void PutAppend(google::protobuf::RpcController *controller,
                  const ::raftKVRpcProctoc::PutAppendArgs *request,
