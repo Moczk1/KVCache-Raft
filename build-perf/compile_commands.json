@@ -1,0 +1,134 @@
+[
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/proto/kvServerRPC.pb.cc.o -c /home/moczkrin/KVCache-Raft/proto/kvServerRPC.pb.cc",
+  "file": "/home/moczkrin/KVCache-Raft/proto/kvServerRPC.pb.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/proto/kvServerRPC.pb.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/proto/raftRPC.pb.cc.o -c /home/moczkrin/KVCache-Raft/proto/raftRPC.pb.cc",
+  "file": "/home/moczkrin/KVCache-Raft/proto/raftRPC.pb.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/proto/raftRPC.pb.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/proto/rpcheader.pb.cc.o -c /home/moczkrin/KVCache-Raft/proto/rpcheader.pb.cc",
+  "file": "/home/moczkrin/KVCache-Raft/proto/rpcheader.pb.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/proto/rpcheader.pb.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/clerk/clerk.cc.o -c /home/moczkrin/KVCache-Raft/src/clerk/clerk.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/clerk/clerk.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/clerk/clerk.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/clerk/raftServerRpcUtil.cc.o -c /home/moczkrin/KVCache-Raft/src/clerk/raftServerRpcUtil.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/clerk/raftServerRpcUtil.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/clerk/raftServerRpcUtil.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/kvserver/KvServer.cc.o -c /home/moczkrin/KVCache-Raft/src/kvserver/KvServer.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/kvserver/KvServer.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/kvserver/KvServer.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/persist/Persister.cc.o -c /home/moczkrin/KVCache-Raft/src/persist/Persister.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/persist/Persister.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/persist/Persister.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/raft/RaftRpcUtil.cc.o -c /home/moczkrin/KVCache-Raft/src/raft/RaftRpcUtil.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/raft/RaftRpcUtil.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/raft/RaftRpcUtil.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/raft/raft.cc.o -c /home/moczkrin/KVCache-Raft/src/raft/raft.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/raft/raft.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/raft/raft.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/rpc/mrpcchannel.cc.o -c /home/moczkrin/KVCache-Raft/src/rpc/mrpcchannel.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/rpc/mrpcchannel.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/rpc/mrpcchannel.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/rpc/mrpcconfig.cc.o -c /home/moczkrin/KVCache-Raft/src/rpc/mrpcconfig.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/rpc/mrpcconfig.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/rpc/mrpcconfig.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/rpc/mrpccontroller.cc.o -c /home/moczkrin/KVCache-Raft/src/rpc/mrpccontroller.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/rpc/mrpccontroller.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/rpc/mrpccontroller.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/kvraft_lib.dir/src/rpc/rpcprovider.cc.o -c /home/moczkrin/KVCache-Raft/src/rpc/rpcprovider.cc",
+  "file": "/home/moczkrin/KVCache-Raft/src/rpc/rpcprovider.cc",
+  "output": "CMakeFiles/kvraft_lib.dir/src/rpc/rpcprovider.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/server.dir/example/server.cc.o -c /home/moczkrin/KVCache-Raft/example/server.cc",
+  "file": "/home/moczkrin/KVCache-Raft/example/server.cc",
+  "output": "CMakeFiles/server.dir/example/server.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf",
+  "command": "/usr/bin/c++ -DBOOST_CONTAINER_DYN_LINK -DBOOST_CONTAINER_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_PROGRAM_OPTIONS_NO_LIB -DBOOST_SERIALIZATION_DYN_LINK -DBOOST_SERIALIZATION_NO_LIB -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/clerk.dir/example/clerk.cc.o -c /home/moczkrin/KVCache-Raft/example/clerk.cc",
+  "file": "/home/moczkrin/KVCache-Raft/example/clerk.cc",
+  "output": "CMakeFiles/clerk.dir/example/clerk.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/fiber/fiber.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/fiber/fiber.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/fiber/fiber.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/fiber/fiber.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/hook/fd_manager.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/hook/fd_manager.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/hook/fd_manager.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/hook/fd_manager.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/hook/hook.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/hook/hook.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/hook/hook.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/hook/hook.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/ioscheduler/ioscheduler.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/ioscheduler/ioscheduler.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/ioscheduler/ioscheduler.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/ioscheduler/ioscheduler.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/scheduler/scheduler.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/scheduler/scheduler.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/scheduler/scheduler.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/scheduler/scheduler.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/thread/thread.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/thread/thread.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/thread/thread.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/thread/thread.cc.o"
+},
+{
+  "directory": "/home/moczkrin/KVCache-Raft/build-perf/coroutine",
+  "command": "/usr/bin/c++  -I/home/moczkrin/KVCache-Raft/include -I/home/moczkrin/KVCache-Raft/proto -I/home/moczkrin/KVCache-Raft/coroutine/include -O2 -g -fno-omit-frame-pointer -std=gnu++23 -o CMakeFiles/coroutine_lib.dir/src/timer/timer.cc.o -c /home/moczkrin/KVCache-Raft/coroutine/src/timer/timer.cc",
+  "file": "/home/moczkrin/KVCache-Raft/coroutine/src/timer/timer.cc",
+  "output": "coroutine/CMakeFiles/coroutine_lib.dir/src/timer/timer.cc.o"
+}
+]

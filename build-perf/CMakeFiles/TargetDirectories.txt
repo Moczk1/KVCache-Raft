@@ -1,0 +1,8 @@
+/home/moczkrin/KVCache-Raft/build-perf/CMakeFiles/kvraft_lib.dir
+/home/moczkrin/KVCache-Raft/build-perf/CMakeFiles/server.dir
+/home/moczkrin/KVCache-Raft/build-perf/CMakeFiles/clerk.dir
+/home/moczkrin/KVCache-Raft/build-perf/CMakeFiles/edit_cache.dir
+/home/moczkrin/KVCache-Raft/build-perf/CMakeFiles/rebuild_cache.dir
+/home/moczkrin/KVCache-Raft/build-perf/coroutine/CMakeFiles/coroutine_lib.dir
+/home/moczkrin/KVCache-Raft/build-perf/coroutine/CMakeFiles/edit_cache.dir
+/home/moczkrin/KVCache-Raft/build-perf/coroutine/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/moczkrin/KVCache-Raft/build-perf/cmake_install.cmake",
+		"/home/moczkrin/KVCache-Raft/build-perf/coroutine/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
