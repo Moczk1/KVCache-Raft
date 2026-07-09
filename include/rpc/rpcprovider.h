@@ -16,6 +16,14 @@ namespace mraft
 // rpc 服务 server 的包装类
 class RpcProvider
 {
+
+  private:
+	struct RpcCallContext
+	{
+		std::shared_ptr<google::protobuf::Message> request;
+		std::shared_ptr<google::protobuf::Message> response;
+	};
+
   public:
 	// 发布 rpc 方法的函数接口
 	void NotifyService(google::protobuf::Service *service);
@@ -47,8 +55,8 @@ class RpcProvider
 	    muduo::Timestamp);
 
 	// Closure 的回调操作，用于序列化 rpc 的响应和网络发送。
-	void SendRpcResponse(
-	    const muduo::net::TcpConnectionPtr &, google::protobuf::Message *);
+	void SendRpcResponse(const muduo::net::TcpConnectionPtr &,
+	    std::shared_ptr<RpcCallContext> ctx);
 
   public:
 	~RpcProvider();
