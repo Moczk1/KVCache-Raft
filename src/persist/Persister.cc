@@ -60,8 +60,7 @@ void Persister::SaveRaftState(const std::string &data)
 
 long long Persister::RaftStateSize() const
 {
-	std::unique_lock<std::mutex> lock(m_mtx);
-	return m_raftStateSize;
+	return m_raftStateSize.load();
 }
 
 std::string Persister::ReadRaftState()
