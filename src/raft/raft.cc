@@ -1,10 +1,11 @@
-#include "raft.h"
-#include "ApplyMsg.h"
-#include "Constant.h"
-#include "Persister.h"
-#include "RaftRpcUtil.h"
+#include "raft/raft.h"
+#include "common/ApplyMsg.h"
+#include "common/Constant.h"
+#include "common/LockQueue.h"
+#include "common/util.h"
+#include "persist/Persister.h"
+#include "raft/RaftRpcUtil.h"
 #include "raftRPC.pb.h"
-#include "util.h"
 
 #include <algorithm>
 #include <boost/archive/text_iarchive.hpp>
@@ -441,7 +442,7 @@ void raft::leaderHeartBeatTricker()
 		        m_lastHearBeatTime - wakeTime)
 		        .count() > 1)
 			continue;
-		std::print("===========================================\n");
+		std::print("\n===========================================\n");
 		doHeartBeat();
 	}
 }
@@ -594,7 +595,7 @@ bool raft::sendAppendEntries(int server,
 		{
 			std::print("{}:{}::\t\trf{} "
 			           "返回的日志term相等，但是不匹配，回缩nextIndex[]：{}\n",
-			    __FUNCTION__, __LINE__, m_id, reply->updatenextindex());
+			    __FUNCTION__, __LINE__, server, reply->updatenextindex());
 			m_nextIndex[server] = reply->updatenextindex(); // 失败不更新
 			// matchindex,重置nextindex，使得后续发送重新开始
 		}
@@ -710,12 +711,12 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		response->set_updatenextindex(lastLogIndexandTerm[0] + 1);
 		return;
 	}
-	else if (request->prevlogindex() < m_lastSnapshotTerm) // 2.
+	else if (request->prevlogindex() < m_lastSnapshotIndex) // 2.
 	{
 		// leader 发送日志为 leader 日志的持久化完成的区域
 		response->set_success(false);
 		response->set_term(m_currentTerm);
-		response->set_updatenextindex(m_lastSnapshotTerm + 1);
+		response->set_updatenextindex(m_lastSnapshotIndex + 1);
 		return;
 	}
 
@@ -733,7 +734,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 	              term
 	*/
 	assert(request->prevlogindex() >= m_lastSnapshotIndex &&
-	       request->prevlogindex() <= lastLogIndexandTerm[0]);
+	       request->prevlogindex() <= getLastLogIndex());
 
 	auto check = [&]()
 	{
@@ -773,7 +774,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 			else
 			{
 				// 没有超过，需要进行匹配判断
-				int v_logindex = log.logindex() - lastLogIndexandTerm[0] - 1;
+				int v_logindex = log.logindex() - m_lastSnapshotIndex - 1;
 				if (m_logs[v_logindex].logterm() == log.logterm() &&
 				    m_logs[v_logindex].command() != log.command())
 				{
@@ -836,7 +837,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		{
 			int i;
 			int term;
-			if (index == m_lastLogIndex)
+			if (index == m_lastSnapshotIndex)
 			{
 				i = 0;
 				term = m_lastSnapshotTerm;
@@ -889,6 +890,7 @@ void raft::leaderSendSnapShot(int i)
 
 	bool ok = m_peers[i]->InstallSnapshot(&args, &reply);
 
+	lock.lock();
 	if (!ok)
 	{
 		return;
@@ -982,7 +984,7 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 	std::thread t(&raft::pushMsgToKvServer, this, msg);
 	t.detach();
 
-	// m_persister->Save(persistData(), args->data());
+	m_persister->Save(persistData(), args->data());
 }
 
 void raft::pushMsgToKvServer(ApplyMsg msg) { applyChan->Push(msg); }

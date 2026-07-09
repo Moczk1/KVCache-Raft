@@ -1,7 +1,7 @@
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstdint>
-#include <cstdlib>
+#include <cstring>
 #include <format>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/coded_stream.h>
@@ -13,8 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "Constant.h"
-#include "mrpcchannel.h"
+#include "rpc/mrpcchannel.h"
 #include "rpcheader.pb.h"
 
 namespace mraft
@@ -119,6 +118,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
 
 	// 接收返回结果
 	char recv_buf[1024] = {0};
+	::memset(recv_buf, 0, sizeof recv_buf);
 	int recv_size = 0;
 	if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0)))
 	{

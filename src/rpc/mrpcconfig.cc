@@ -1,4 +1,4 @@
-#include "mrpcconfig.h"
+#include "rpc/mrpcconfig.h"
 
 #include <iostream>
 #include <string>

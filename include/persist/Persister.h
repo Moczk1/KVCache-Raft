@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Option.h"
+#include "common/Option.h"
 #include <atomic>
 #include <fstream>
 #include <mutex>
@@ -8,7 +8,7 @@
 namespace mraft {
 class Persister {
 private:
-  std::mutex m_mtx;
+  mutable std::mutex m_mtx;
   std::string m_raftState;
   std::string m_snapshot;
   /**

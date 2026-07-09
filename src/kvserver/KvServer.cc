@@ -1,14 +1,14 @@
-#include "KvServer.h"
-#include "ApplyMsg.h"
-#include "Constant.h"
-#include "LockQueue.h"
-#include "Option.h"
-#include "Persister.h"
-#include "RaftRpcUtil.h"
-#include "mrpcconfig.h"
-#include "raft.h"
-#include "rpcprovider.h"
-#include "util.h"
+#include "kvserver/KvServer.h"
+#include "common/ApplyMsg.h"
+#include "common/Constant.h"
+#include "common/LockQueue.h"
+#include "common/Option.h"
+#include "common/util.h"
+#include "persist/Persister.h"
+#include "raft/RaftRpcUtil.h"
+#include "raft/raft.h"
+#include "rpc/mrpcconfig.h"
+#include "rpc/rpcprovider.h"
 #include <climits>
 #include <cstdlib>
 #include <format>
@@ -101,6 +101,7 @@ void KvServer::Get(
 	if (!isLeader)
 	{
 		reply->set_err(ErrWrongLeader);
+		return;
 	}
 
 	std::unique_lock<std::mutex> lock(m_mtx);
@@ -128,7 +129,7 @@ void KvServer::Get(
 		m_raftNode->GetState(&_, &isLeader);
 
 		// 请求操作是否是重复的
-		if (ifRequestDuplicate(op.ClientId, op.RequestId))
+		if (ifRequestDuplicate(op.ClientId, op.RequestId) && isLeader)
 		{
 			std::string value;
 			bool exist = false;
@@ -226,13 +227,12 @@ void KvServer::GetCommandFromRaft(ApplyMsg message)
 		{
 			ExecuteAppendOpOnKVDB(op);
 		}
-
-		if (m_maxRaftState != -1)
-		{
-			IfNeedToSendSnapShotCommand(message.CommandIndex, 9);
-		}
-		SendMessageToWaitChan(op, message.CommandIndex);
 	}
+	if (m_maxRaftState != -1)
+	{
+		IfNeedToSendSnapShotCommand(message.CommandIndex, 9);
+	}
+	SendMessageToWaitChan(op, message.CommandIndex);
 }
 bool KvServer::ifRequestDuplicate(std::string ClientId, int RequestId)
 {

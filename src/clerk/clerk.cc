@@ -1,16 +1,12 @@
-//
-// Created by swx on 23-6-4.
-//
-#include "clerk.h"
+#include "clerk/clerk.h"
 
-#include "Constant.h"
-#include "mrpcconfig.h"
-#include "raftServerRpcUtil.h"
-#include "util.h"
+#include "clerk/raftServerRpcUtil.h"
+#include "common/Constant.h"
+#include "common/util.h"
+#include "rpc/mrpcconfig.h"
 
 #include <print>
 #include <string>
-#include <vector>
 namespace mraft
 {
 std::string Clerk::Get(std::string key)

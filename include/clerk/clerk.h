@@ -1,12 +1,14 @@
 #pragma once
 
+#include "clerk/raftServerRpcUtil.h"
 #include <arpa/inet.h>
+#include <memory>
 #include <netinet/in.h>
-#include <raftServerRpcUtil.h>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <vector>
 
 namespace mraft
 {

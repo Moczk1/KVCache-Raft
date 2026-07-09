@@ -1,8 +1,8 @@
 //
 // Created by swx on 23-12-28.
 //
-#include "Option.h"
-#include <KvServer.h>
+#include "common/Option.h"
+#include "kvserver/KvServer.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <random>

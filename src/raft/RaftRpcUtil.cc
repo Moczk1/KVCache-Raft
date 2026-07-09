@@ -1,6 +1,6 @@
-#include "RaftRpcUtil.h"
-#include "mrpcchannel.h"
-#include "mrpccontroller.h"
+#include "raft/RaftRpcUtil.h"
+#include "rpc/mrpcchannel.h"
+#include "rpc/mrpccontroller.h"
 #include <memory>
 
 namespace mraft {

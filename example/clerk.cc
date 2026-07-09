@@ -1,4 +1,4 @@
-#include "clerk.h"
+#include "clerk/clerk.h"
 #include <chrono>
 int main()
 {
@@ -11,15 +11,7 @@ int main()
 	{
 		client.Put("x", std::to_string(tmp));
 		std::string get1 = client.Get("x");
-		std::printf("get return :{%s}\r\n", get1.c_str());
-		
-		client.Put("y", std::to_string(tmp));
-		get1 = client.Get("x");
-		std::printf("get return :{%s}\r\n", get1.c_str());
-		
-		client.Put("z", std::to_string(tmp));
-		get1 = client.Get("x");
-		std::printf("get return :{%s}\r\n", get1.c_str());
+		std::printf("get return :{%s}\n", get1.c_str());
 	}
 	return 0;
 }

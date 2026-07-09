@@ -1,11 +1,11 @@
 #pragma once
-#include "Alias.h"
-#include "ApplyMsg.h"
-#include "LockQueue.h"
-#include "Persister.h"
 #include "RaftRpcUtil.h"
+#include "common/Alias.h"
+#include "common/ApplyMsg.h"
+#include "common/LockQueue.h"
+#include "common/util.h"
+#include "persist/Persister.h"
 #include "raftRPC.pb.h"
-#include "util.h"
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/access.hpp>
@@ -23,6 +23,8 @@ namespace mraft
 class raft : public raftRpcProctoc::raftRpc
 {
   private:
+
+	static inline bool Debug = true;
 	/* data */
 	mutable std::mutex m_mtx;
 	int m_id;
