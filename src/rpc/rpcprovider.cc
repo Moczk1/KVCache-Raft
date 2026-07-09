@@ -78,7 +78,7 @@ void RpcProvider::Run(int nodeIndex, short port)
 	}
 
 	os << node + "ip=" + ip << std::endl;
-	os << node + "port=" << port << std::endl;
+	os << node + "port=" + std::to_string(port) << std::endl;
 	os.close();
 
 	muduo::net::InetAddress address(ip, port);
@@ -89,6 +89,7 @@ void RpcProvider::Run(int nodeIndex, short port)
 	    std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
 	m_muduo_server->setMessageCallback(std::bind(&RpcProvider::OnMessage, this,
 	    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	m_muduo_server->setThreadNum(4);
 
 	if (DEBUG)
 	{
@@ -135,7 +136,7 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 	coded_input.ReadString(&rpc_header_str, header_size);
 
 	// 取消读取大小限制
-	coded_input.PopLimit(header_size);
+	coded_input.PopLimit(msg_limit);
 
 	if (rpcHeader.ParseFromString(rpc_header_str))
 	{
@@ -158,16 +159,15 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 		return;
 	}
 
-	if (DEBUG)
-	{
-		std::print("================================================\n"
-		           "rpc_header_str:{}\n "
-		           "service_name:{}\n"
-		           "method_name\n"
-		           "args_str:{}\n",
-		    rpc_header_str, rpc_header_str, service_name, method_name,
-		    args_size);
-	}
+	// if (DEBUG)
+	// {
+	// 	std::print("================================================\n"
+	// 	           "rpc_header_str:{}\n "
+	// 	           "service_name:{}\n"
+	// 	           "method_name:{}\n"
+	// 	           "args_str:{}\n",
+	// 	    rpc_header_str, service_name, method_name, args_size);
+	// }
 
 	// 获取真实的 service 和 method 的描述符
 	auto it = m_serviceMap.find(service_name);

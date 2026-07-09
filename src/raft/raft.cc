@@ -68,11 +68,17 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		}
 	}
 
-	std::thread t(&raft::leaderHeartBeatTricker, this);
-	t.detach();
-	std::thread t2(&raft::electionTimeOutTicker, this);
-	t2.detach();
-	//   std::thread t3(&raft::applier)
+	m_ioManager = std::make_unique<moczkrin::IOManager>(1, false);
+	m_ioManager->scheduleLock(
+	    [this] -> void { this->leaderHeartBeatTricker(); });
+	m_ioManager->scheduleLock(
+	    [this] -> void { this->electionTimeOutTicker(); });
+	// std::thread t(&raft::leaderHeartBeatTricker, this);
+	// t.detach();
+	// std::thread t2(&raft::electionTimeOutTicker, this);
+	// t2.detach();
+	m_ioManager->scheduleLock([this] -> void { this->applierTicker(); });
+	//   std::thread t3(&raft::applierTicker);
 }
 
 void raft::electionTimeOutTicker()
@@ -135,6 +141,8 @@ void raft::electionTimeOutTicker()
 		{
 			continue;
 		}
+		std::print("===========================================\n");
+
 		doElection();
 	}
 }
@@ -154,7 +162,6 @@ void raft::doElection()
 		    __FUNCTION__, __LINE__, m_id);
 		// 准备工作
 		{
-			std::unique_lock<std::mutex> lock(m_mtx);
 			m_state = candidate;
 			m_currentTerm += 1;
 			m_voteForId = m_id;
@@ -397,17 +404,10 @@ void raft::leaderHeartBeatTricker()
 		{
 			std::unique_lock<std::mutex> lock(m_mtx);
 			wakeTime = now();
-			suitableSleepTime = []()
-			    -> auto
-			{
-				std::random_device rd;
-				std::mt19937 rng(rd());
-				std::uniform_int_distribution<int> dist(
-				    MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
-				return std::chrono::milliseconds(dist(rng));
-			}() +
-			           std::chrono::duration_cast<std::chrono::milliseconds>(
-			               m_lastElectionTime - wakeTime);
+			suitableSleepTime =
+			    std::chrono::milliseconds(HEARTBEATTIMEOUT) +
+			    std::chrono::duration_cast<std::chrono::milliseconds>(
+			        m_lastHearBeatTime - wakeTime);
 		}
 
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -441,7 +441,7 @@ void raft::leaderHeartBeatTricker()
 		        m_lastHearBeatTime - wakeTime)
 		        .count() > 1)
 			continue;
-
+		std::print("===========================================\n");
 		doHeartBeat();
 	}
 }
@@ -453,7 +453,7 @@ void raft::doHeartBeat()
 
 	assert(m_state == leader);
 
-	std::print("{}:{}::\t\tLeader:{}] "
+	std::print("{}:{}::\tLeader:{}"
 	           "Leader的心跳定时器触发了且拿到mutex，开始发送AE\n",
 	    __FUNCTION__, __LINE__, m_id);
 
@@ -519,10 +519,13 @@ void raft::doHeartBeat()
 				*sendEntryPtr = item;
 			}
 		}
+		int lastLogIndex;
+		int lastLogTerm;
+		getLastLogIndexandTerm(lastLogIndex, lastLogTerm);
 
 		assert(appendEntriesArgs->prevlogindex() +
 		           appendEntriesArgs->entries_size() ==
-		       m_lastLogIndex);
+		       lastLogIndex);
 
 		auto appendEntriesReply =
 		    std::make_shared<raftRpcProctoc::AppendEntriesReply>();
@@ -806,7 +809,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 
 		assert(lastLogIndexandTerm[0] >= m_commitIndex);
 
-		response->set_term(m_commitIndex);
+		response->set_term(m_currentTerm);
 		response->set_success(true);
 		return;
 	}
@@ -878,7 +881,7 @@ void raft::leaderSendSnapShot(int i)
 	args.set_leaderid(m_id);
 	args.set_term(m_currentTerm);
 	args.set_lastsnapshotincludeindex(m_lastSnapshotIndex);
-	args.set_lastsnapshotincludeindex(m_lastSnapshotTerm);
+	args.set_lastsnapshotincludeterm(m_lastSnapshotTerm);
 	args.set_data(m_persister->ReadSnapshot());
 
 	raftRpcProctoc::InstallSnapshotResponse reply;
@@ -1007,7 +1010,7 @@ void raft::Snapshot(int index, std::string snapshot)
 	int newLastSnapShotIndex = index;
 	int newLastSnapShotTerm = m_logs[index - m_lastSnapshotIndex - 1].logterm();
 	std::vector<raftRpcProctoc::LogEntry> trunckedLogs;
-	for (int i = index + 1; i < lastLogIndex; i++)
+	for (int i = index + 1; i <= lastLogIndex; i++)
 	{
 		trunckedLogs.push_back(m_logs[i - m_lastSnapshotIndex - 1]);
 	}
@@ -1183,20 +1186,4 @@ void raft::readPersist(std::string data)
 	}
 }
 
-void raft::getLastLogIndexandTerm(int &index, int &term)
-{
-	if (m_logs.empty())
-	{
-		index = m_lastSnapshotIndex;
-		term = m_lastSnapshotTerm;
-		return;
-	}
-	else
-	{
-		int len = m_logs.size();
-		index = m_logs[len - 1].logindex();
-		term = m_logs[len - 1].logterm();
-		return;
-	}
-}
 } // namespace mraft

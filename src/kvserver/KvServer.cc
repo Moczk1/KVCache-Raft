@@ -490,7 +490,6 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 	std::cout << "raftServer node:" << m_id
 	          << " wake up!!!! start to connect other raftnode" << std::endl;
 
-
 	MrpcConfig config;
 
 	config.LoadConfigFile(nodeInforFileName.c_str());
@@ -500,7 +499,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 	for (int i = 0; i < INT_MAX - 1; i++)
 	{
 		std::string node = "node" + std::to_string(i);
-		std::string nodeIp = config.Load("ip");
+		std::string nodeIp = config.Load(node + "ip");
 		std::string nodePortStr = config.Load(node + "port");
 
 		if (nodeIp.empty())
@@ -523,7 +522,8 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 		std::string otherNodeIp = ipPort[i].first;
 		short otherNodePort = ipPort[i].second;
 
-		servers.push_back(std::make_shared<RaftRpcUtil>(otherNodeIp, otherNodePort));
+		servers.push_back(
+		    std::make_shared<RaftRpcUtil>(otherNodeIp, otherNodePort));
 		std::print("node:{} 连接 node {} success!\n", m_id, i);
 	}
 	sleep(ipPort.size() - m_id);

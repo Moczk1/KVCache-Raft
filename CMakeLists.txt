@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 👉 生成 clangd 需要的 compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+
 # -------------------------
 # Protobuf
 # -------------------------
@@ -21,6 +23,9 @@ include_directories(
 file(GLOB_RECURSE KVRAFT_SRC
     ${PROJECT_SOURCE_DIR}/src/*.cc
 )
+
+# 添加 coroutine 子项目
+add_subdirectory(coroutine)
 
 # 公共静态库：包含 src 下所有实现
 add_library(kvraft_lib STATIC
@@ -40,25 +45,26 @@ target_link_libraries(kvraft_lib
     Boost::program_options
 	muduo_net
     muduo_base
+	coroutine_lib
     pthread
 )
 
 # example/server.cc -> example_server
-add_executable(example_server
+add_executable(server
     example/server.cc
 )
 
-target_link_libraries(example_server
+target_link_libraries(server
     PRIVATE
     kvraft_lib
 )
 
 # example/clerk.cc -> example_clerk
-add_executable(example_clerk
+add_executable(clerk
     example/clerk.cc
 )
 
-target_link_libraries(example_clerk
+target_link_libraries(clerk
     PRIVATE
     kvraft_lib
 )

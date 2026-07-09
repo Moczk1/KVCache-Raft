@@ -14,6 +14,8 @@
 #include <mutex>
 #include <vector>
 
+#include "../coroutine/include/ioscheduler.h"
+
 using raftRpcProctoc::LogEntry;
 
 namespace mraft
@@ -143,7 +145,36 @@ class raft : public raftRpcProctoc::raftRpc
 	}
 
   private:
-	void getLastLogIndexandTerm(int &, int &);
+	std::unique_ptr<moczkrin::IOManager> m_ioManager = nullptr;
+
+	inline int getLastLogTerm()
+	{
+		getLastLogIndexandTerm(m_lastLogIndex, m_lastLogTerm);
+		return m_lastLogTerm;
+	}
+
+	inline int getLastLogIndex()
+	{
+		getLastLogIndexandTerm(m_lastLogIndex, m_lastLogTerm);
+		return m_lastLogIndex;
+	}
+
+	inline void getLastLogIndexandTerm(int &index, int &term)
+	{
+		if (m_logs.empty())
+		{
+			index = m_lastSnapshotIndex;
+			term = m_lastSnapshotTerm;
+			return;
+		}
+		else
+		{
+			int len = m_logs.size();
+			index = m_logs[len - 1].logindex();
+			term = m_logs[len - 1].logterm();
+			return;
+		}
+	}
 
 	inline void getPrevLogInfo(int server, int &index, int &term)
 	{
@@ -211,33 +242,6 @@ class raft : public raftRpcProctoc::raftRpc
 	//       applyMsgs.emplace_back(applyMsg);
 	//     }
 	//     return applyMsgs;
-	//   }
-
-	//   inline void applierTicker() {
-	//     while (true) {
-	//       m_mtx.lock();
-	//       if (m_state == leader) {
-	//         std::print(
-	//             "[Raft::applierTicker() - raft{}]
-	//             m_lastApplied{}m_commitIndex{}", m_id, m_lastApplied,
-	//             m_commitIndex);
-	//       }
-	//       auto applyMsgs = getApplyLogs();
-	//       m_mtx.unlock();
-	//       // 使用匿名函数是因为传递管道的时候不用拿锁
-	//       //
-	//       todo:好像必须拿锁，因为不拿锁的话如果调用多次applyLog函数，可能会导致应用的顺序不一样
-	//       if (!applyMsgs.empty()) {
-	//         DPrintf("[func- Raft::applierTicker()-raft{}] "
-	//                 "向kvserver報告的applyMsgs長度爲：{}",
-	//                 m_me, applyMsgs.size());
-	//       }
-	//       for (auto &message : applyMsgs) {
-	//         applyChan->Push(message);
-	//       }
-	//       // usleep(1000 * ApplyInterval);
-	//       sleepNMilliseconds(ApplyInterval);
-	//     }
 	//   }
 };
 

@@ -4,7 +4,7 @@
 namespace mraft
 {
 constexpr bool DEBUG = true;
-constexpr int SCALE = 1; // 缩放倍数，默认单位为 millisecond
+constexpr int SCALE = 3; // 缩放倍数，默认单位为 millisecond
 
 constexpr int HEARTBEATTIMEOUT = 25 * SCALE;
 
