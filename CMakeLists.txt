@@ -70,3 +70,16 @@ target_link_libraries(clerk
     PRIVATE
     kvraft_lib
 )
+
+
+
+
+# benchmark/benchmark.cc -> benchmark
+add_executable(benchmark
+    benchmark/benchmark.cc
+)
+
+target_link_libraries(benchmark
+    PRIVATE
+   kvraft_lib
+)
