@@ -254,8 +254,8 @@ bool raft::sendRequestVote(int i,
 	// 计票
 	*votedNum += 1;
 
-	if (*votedNum >=
-	    m_peers.size() / 2 + 1) // 如果满足过半数同意->成功晋升leader
+	if (*votedNum >= m_peers.size() / 2 + 1 &&
+	    m_state == candidate) // 如果满足过半数同意->成功晋升leader
 	{
 		if (m_state == leader)
 		{
@@ -767,7 +767,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		{
 			auto log = request->entries(i);
 			// 新log （index）更大 直接添加
-			if (log.logindex() > lastLogIndexandTerm[0])
+			if (log.logindex() > getLastLogIndex())
 			{
 				m_logs.push_back(log);
 			}
@@ -954,14 +954,14 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 		return;
 	}
 
-	int lastindexandterm[2];
-	getLastLogIndexandTerm(lastindexandterm[0], lastindexandterm[1]);
+	// int lastindexandterm[2];
+	// getLastLogIndexandTerm(lastindexandterm[0], lastindexandterm[1]);
 
 	// 从内存缓存的日志中 删除这些内容
-	if (lastindexandterm[0] > args->lastsnapshotincludeindex())
+	if (getLastLogIndex() > args->lastsnapshotincludeindex())
 	{
 		int index = args->lastsnapshotincludeindex() - m_lastSnapshotIndex - 1;
-		m_logs.erase(m_logs.cbegin(), m_logs.begin() + index + 1);
+		m_logs.erase(m_logs.begin(), m_logs.begin() + index + 1);
 	}
 	else
 	{

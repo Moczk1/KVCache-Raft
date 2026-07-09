@@ -193,30 +193,36 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 	auto method = mit->second;
 
 	// 生成 rpc 方法调用的请求 request 和 响应 response
-	google::protobuf::Message *request =
-	    service->GetRequestPrototype(method).New();
+	std::shared_ptr<google::protobuf::Message> request(
+	    service->GetRequestPrototype(method).New());
 	if (!request->ParseFromString(args_str))
 	{
 		std::print("request parse error, content:{}\n", args_str);
 		return;
 	}
-	google::protobuf::Message *response =
-	    service->GetResponsePrototype(method).New();
+	std::shared_ptr<google::protobuf::Message> response(
+	    service->GetResponsePrototype(method).New());
 
 	// 设置服务端执行完毕的回调函数
+	std::shared_ptr<RpcCallContext> ctx_p(
+	    new RpcCallContext{request, response});
+	// RpcCallContext ctx{request, response};
+
 	google::protobuf::Closure *done = google::protobuf::NewCallback<RpcProvider,
-	    const ::muduo::net::TcpConnectionPtr &, google::protobuf::Message *>(
-	    this, &RpcProvider::SendRpcResponse, conn, response);
+	    const ::muduo::net::TcpConnectionPtr &,
+	    std::shared_ptr<RpcCallContext>>(
+	    this, &RpcProvider::SendRpcResponse, conn, ctx_p);
 
 	// 真正调用方法
-	service->CallMethod(method, nullptr, request, response, done);
+	service->CallMethod(method, nullptr, request.get(), response.get(), done);
 }
 
 // Closure 回调
 // 用于序列化 rpc 的响应结果和消息发送
 void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr &conn,
-    google::protobuf::Message *response)
+    std::shared_ptr<RpcCallContext> ctx)
 {
+	std::shared_ptr<google::protobuf::Message> response = ctx->response;
 	std::string response_str;
 	if (response->SerializeToString(&response_str))
 	{
