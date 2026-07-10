@@ -4,6 +4,10 @@
 #include <memory>
 
 namespace mraft {
+
+
+
+	
 // 下面三个方法内部调用 stub 的 raft rpc 方法.
 bool RaftRpcUtil::AppendEntries(raftRpcProctoc::AppendEntriesArgs *args,
                                 raftRpcProctoc::AppendEntriesReply *response) {

@@ -14,7 +14,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 # Protobuf
 # -------------------------
 find_package(Protobuf REQUIRED)
-find_package(Boost REQUIRED COMPONENTS serialization program_options)
+find_package(Boost REQUIRED COMPONENTS serialization program_options context)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -45,6 +45,7 @@ target_link_libraries(kvraft_lib
     protobuf::libprotobuf
     Boost::serialization
     Boost::program_options
+	Boost::context
 	muduo_net
     muduo_base
 	coroutine_lib

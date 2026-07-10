@@ -29,14 +29,14 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method,
 		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
 		if (!rt)
 		{
-			std::print("Function:{},重连接ip：{} port{}失败\n", __FUNCTION__,
+			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__,
 			    m_ip, m_port);
 			controller->SetFailed(errMsg);
 			return;
 		}
 		else
 		{
-			std::print("Function:{},重连接ip：{} port{}成功\n", __FUNCTION__,
+			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__,
 			    m_ip, m_port);
 		}
 	}

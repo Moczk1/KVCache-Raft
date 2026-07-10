@@ -2,6 +2,7 @@
 #include "RaftRpcUtil.h"
 #include "common/Alias.h"
 #include "common/ApplyMsg.h"
+#include "common/Constant.h"
 #include "common/LockQueue.h"
 #include "common/util.h"
 #include "persist/Persister.h"
@@ -23,8 +24,8 @@ namespace mraft
 class raft : public raftRpcProctoc::raftRpc
 {
   private:
-
-	static inline bool Debug = true;
+	static inline bool Debug = false;
+	static inline bool Log = false;
 	/* data */
 	mutable std::mutex m_mtx;
 	int m_id;
@@ -216,35 +217,6 @@ class raft : public raftRpcProctoc::raftRpc
 		std::vector<std::string> m_logs;
 		std::unordered_map<std::string, int> umap;
 	};
-
-	//   inline std::vector<ApplyMsg> getApplyLogs() {
-	//     std::vector<ApplyMsg> applyMsgs;
-	//     myAssert(
-	//         m_commitIndex <= getLastLogIndex(),
-	//         format(
-	//             "[func-getApplyLogs-rf{%d}] commitIndex{%d}
-	//             >getLastLogIndex{%d}", m_me, m_commitIndex,
-	//             getLastLogIndex()));
-
-	//     while (m_lastApplied < m_commitIndex) {
-	//       m_lastApplied++;
-	//       myAssert(
-	//           m_logs[getSlicesIndexFromLogIndex(m_lastApplied)].logindex() ==
-	//               m_lastApplied,
-	//           format("rf.logs[rf.getSlicesIndexFromLogIndex(rf.lastApplied)]."
-	//                  "LogIndex{%d} != rf.lastApplied{%d} ",
-	//                  m_logs[getSlicesIndexFromLogIndex(m_lastApplied)].logindex(),
-	//                  m_lastApplied));
-	//       ApplyMsg applyMsg;
-	//       applyMsg.CommandValid = true;
-	//       applyMsg.SnapshotValid = false;
-	//       applyMsg.Command =
-	//           m_logs[getSlicesIndexFromLogIndex(m_lastApplied)].command();
-	//       applyMsg.CommandIndex = m_lastApplied;
-	//       applyMsgs.emplace_back(applyMsg);
-	//     }
-	//     return applyMsgs;
-	//   }
 };
 
 } // namespace mraft

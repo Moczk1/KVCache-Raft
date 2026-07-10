@@ -63,7 +63,7 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		}
 		if (DEBUG)
 		{
-			std::print("Sever{}, term{}, lastSnapshotIncludeIndex {} , "
+			std::print("[raft]:Sever{}, term{}, lastSnapshotIncludeIndex {} , "
 			           "lastSnapshotIncludeTerm {}",
 			    m_id, m_currentTerm, m_lastSnapshotIndex, m_lastSnapshotTerm);
 		}
@@ -78,8 +78,9 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 	// t.detach();
 	// std::thread t2(&raft::electionTimeOutTicker, this);
 	// t2.detach();
-	m_ioManager->scheduleLock([this] -> void { this->applierTicker(); });
-	//   std::thread t3(&raft::applierTicker);
+	// m_ioManager->scheduleLock([this] -> void { this->applierTicker(); });
+	std::thread t3(&raft::applierTicker, this);
+	t3.detach();
 }
 
 void raft::electionTimeOutTicker()
@@ -125,15 +126,19 @@ void raft::electionTimeOutTicker()
 			    std::chrono::duration_cast<std::chrono::milliseconds>(
 			        end - start);
 			// 使用ANSI控制序列将输出颜色修改为紫色
-			std::cout
-			    << "\033[1;35m electionTimeOutTicker();函数设置睡眠时间为: "
-			    << std::chrono::duration_cast<std::chrono::milliseconds>(
-			           suitableSleepTime)
-			           .count()
-			    << " 毫秒\033[0m" << std::endl;
-			std::cout
-			    << "\033[1;35m electionTimeOutTicker();函数实际睡眠时间为: "
-			    << duration.count() << " 毫秒\033[0m" << std::endl;
+
+			if (this->Debug)
+			{
+				std::cout
+				    << "\033[1;35m electionTimeOutTicker();函数设置睡眠时间为: "
+				    << std::chrono::duration_cast<std::chrono::milliseconds>(
+				           suitableSleepTime)
+				           .count()
+				    << " 毫秒\033[0m" << std::endl;
+				std::cout
+				    << "\033[1;35m electionTimeOutTicker();函数实际睡眠时间为: "
+				    << duration.count() << " 毫秒\033[0m" << std::endl;
+			}
 		}
 
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -142,8 +147,6 @@ void raft::electionTimeOutTicker()
 		{
 			continue;
 		}
-		std::print("===========================================\n");
-
 		doElection();
 	}
 }
@@ -159,8 +162,10 @@ void raft::doElection()
 
 	if (m_state != leader)
 	{
-		std::print("{}:{}::\t\traft:{}选举定时器到期且不是leader，开始选举 \n",
-		    __FUNCTION__, __LINE__, m_id);
+		if (this->Debug)
+			std::print("[raft]{}:{}::\t\traft:{}"
+			           "选举定时器到期且不是leader，开始选举 \n",
+			    __FUNCTION__, __LINE__, m_id);
 		// 准备工作
 		{
 			m_state = candidate;
@@ -168,8 +173,8 @@ void raft::doElection()
 			m_voteForId = m_id;
 		}
 
-		// 持久化
-		DeferClass defer([this] { persist(); });
+		// // 持久化
+		// DeferClass defer([this] { persist(); });
 
 		// 准备发送数据
 		std::shared_ptr<int> votedNum = std::make_shared<int>(1);
@@ -203,14 +208,18 @@ bool raft::sendRequestVote(int i,
     std::shared_ptr<int> votedNum)
 {
 	auto start = now();
-	std::print("{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n",
-	    __FUNCTION__, __LINE__, m_id, i);
+
+	if (this->Log)
+		std::print("[raft]:{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n",
+		    __FUNCTION__, __LINE__, m_id, i);
 	// 发送消息
 	bool status = m_peers[i]->RequestVote(args.get(), reply.get());
 	auto end = now();
-	std::print(
-	    "{}:{}::\t\trf{}] 向server{} 發送 RequestVote 完畢，耗時:{} ms\n",
-	    __FUNCTION__, __LINE__, m_id, i, end - start);
+
+	if (this->Log)
+		std::print("[raft]{}:{}::\t\trf{}] 向server{} 發送 RequestVote "
+		           "完畢，耗時:{} ms\n",
+		    __FUNCTION__, __LINE__, m_id, i, end - start);
 
 	if (!status)
 	{
@@ -259,24 +268,27 @@ bool raft::sendRequestVote(int i,
 	{
 		if (m_state == leader)
 		{
-			std::print(
-			    "{}:{}::\t\trf{}]  term:{} 同一个term当两次领导，error\n",
-			    __FUNCTION__, __LINE__, m_id, m_currentTerm);
+			if (this->Debug)
+				std::print(
+				    "{}:{}::\t\trf{}]  term:{} 同一个term当两次领导，error\n",
+				    __FUNCTION__, __LINE__, m_id, m_currentTerm);
 		}
 
 		m_state = leader;
-		int info[2] = {0};
-		getLastLogIndexandTerm(info[0], info[1]);
-		std::print("sendRequestVote rf{}] elect success,current term:{}"
-		           ",lastLogIndex:{}\n",
-		    m_id, m_currentTerm, info[0]);
+
+		if (this->Debug)
+			std::print(
+			    "[raft]sendRequestVote rf{}] elect success,current term:{}"
+			    ",lastLogIndex:{}\n",
+			    m_id, m_currentTerm, getLastLogIndex());
 		// 修改本地保存的 远端服务器的相关缓存
 		for (int i = 0; i < m_peers.size(); i++)
 		{
 			if (i == m_id)
 				continue;
-			m_nextIndex[i] = info[0] + 1; // 远端想要的下一个 index 编号
-			m_matchIndex[i] = 0;          // 每换一个领导则重置远端的 commit 号
+			m_nextIndex[i] =
+			    getLastLogIndex() + 1; // 远端想要的下一个 index 编号
+			m_matchIndex[i] = 0;       // 每换一个领导则重置远端的 commit 号
 		}
 
 		// 启动 成为 leader 后的定时任务
@@ -321,16 +333,13 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 	// 3.
 	assert(request->term() == m_currentTerm);
 
-	int info[2] = {0, 0};
-	getLastLogIndexandTerm(info[0], info[1]);
-
 	// 只有此 term 下第一次投票 & candidate 的日志新的程度 >= 自己的日志
 	// 才会授票 即 wheter == true 时才投票
 	bool whether = [&]() -> bool
 	{
-		if (request->lastlogterm() > info[1] ||
-		    (request->lastlogterm() == info[1] &&
-		        request->lastlogindex() >= info[0]))
+		if (request->lastlogterm() > getLastLogTerm() ||
+		    (request->lastlogterm() == getLastLogTerm() &&
+		        request->lastlogindex() >= getLastLogIndex()))
 		{
 			return true;
 		}
@@ -342,7 +351,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 
 	if (!whether)
 	{
-		if (request->lastlogterm() < info[1])
+		if (request->lastlogterm() < getLastLogTerm())
 		{
 		}
 		else
@@ -415,13 +424,6 @@ void raft::leaderHeartBeatTricker()
 		        suitableSleepTime)
 		        .count() > 1)
 		{
-			std::cout
-			    << atomicCount
-			    << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
-			    << std::chrono::duration_cast<std::chrono::milliseconds>(
-			           suitableSleepTime)
-			           .count()
-			    << " 毫秒\033[0m" << std::endl;
 			// 获取当前时间点
 			auto start = std::chrono::steady_clock::now();
 			std::this_thread::sleep_for(
@@ -431,10 +433,21 @@ void raft::leaderHeartBeatTricker()
 
 			std::chrono::duration<double, std::milli> duration = end - start;
 
-			std::cout
-			    << atomicCount
-			    << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
-			    << duration.count();
+			if (this->Debug)
+			{
+				std::cout
+				    << atomicCount
+				    << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
+				    << std::chrono::duration_cast<std::chrono::milliseconds>(
+				           suitableSleepTime)
+				           .count()
+				    << " 毫秒\033[0m" << std::endl;
+
+				std::cout
+				    << atomicCount
+				    << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
+				    << duration.count();
+			}
 			atomicCount++;
 		}
 
@@ -442,7 +455,6 @@ void raft::leaderHeartBeatTricker()
 		        m_lastHearBeatTime - wakeTime)
 		        .count() > 1)
 			continue;
-		std::print("\n===========================================\n");
 		doHeartBeat();
 	}
 }
@@ -454,9 +466,10 @@ void raft::doHeartBeat()
 
 	assert(m_state == leader);
 
-	std::print("{}:{}::\tLeader:{}"
-	           "Leader的心跳定时器触发了且拿到mutex，开始发送AE\n",
-	    __FUNCTION__, __LINE__, m_id);
+	if (this->Log)
+		std::print("{}:{}::\tLeader:{}"
+		           "Leader的心跳定时器触发了且拿到mutex，开始发送AE\n",
+		    __FUNCTION__, __LINE__, m_id);
 
 	// 正确返回的节点数量
 	auto appedNum = std::make_shared<int>(1);
@@ -465,9 +478,10 @@ void raft::doHeartBeat()
 	{
 		if (i == m_id)
 			continue;
-
-		std::print("{}:{}::\tLeader: {} Leader的心跳定时器触发了 index:{}\n",
-		    __FUNCTION__, __LINE__, m_id, i);
+		if (this->Log)
+			std::print(
+			    "{}:{}::\tLeader: {} Leader的心跳定时器触发了 index:{}\n",
+			    __FUNCTION__, __LINE__, m_id, i);
 		assert(m_nextIndex[i] >= 1);
 
 		// 由于有持久化的数据，所需需要判断发送数据的来源
@@ -545,20 +559,23 @@ bool raft::sendAppendEntries(int server,
     std::shared_ptr<int> appendNum)
 {
 
-	std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc開始 ， "
-	           "args->entries_size():{}\n",
-	    __FUNCTION__, __LINE__, m_id, server, args->entries_size());
+	if (this->Log)
+		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc開始 ， "
+		           "args->entries_size():{}\n",
+		    __FUNCTION__, __LINE__, m_id, server, args->entries_size());
 
 	bool status = m_peers[server]->AppendEntries(args.get(), reply.get());
 	if (!status)
 	{
-		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
-		    __FUNCTION__, __LINE__, m_id, server);
+		if (this->Log)
+			std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
+			    __FUNCTION__, __LINE__, m_id, server);
 		return false;
 	}
 
-	std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n",
-	    __FUNCTION__, __LINE__, m_id, server);
+	if (this->Log)
+		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n",
+		    __FUNCTION__, __LINE__, m_id, server);
 
 	std::unique_lock<std::mutex> lock(m_mtx);
 
@@ -593,9 +610,11 @@ bool raft::sendAppendEntries(int server,
 		// term 匹配的前提下，判单是 rpc 延迟导致的 term 相符
 		if (reply->updatenextindex() != -100)
 		{
-			std::print("{}:{}::\t\trf{} "
-			           "返回的日志term相等，但是不匹配，回缩nextIndex[]：{}\n",
-			    __FUNCTION__, __LINE__, server, reply->updatenextindex());
+			if (this->Log)
+				std::print(
+				    "{}:{}::\t\trf{} "
+				    "返回的日志term相等，但是不匹配，回缩nextIndex[]：{}\n",
+				    __FUNCTION__, __LINE__, server, reply->updatenextindex());
 			m_nextIndex[server] = reply->updatenextindex(); // 失败不更新
 			// matchindex,重置nextindex，使得后续发送重新开始
 		}
@@ -603,8 +622,9 @@ bool raft::sendAppendEntries(int server,
 	else
 	{ // success！
 		*appendNum += 1;
-		std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n",
-		    __FUNCTION__, __LINE__, m_id, *appendNum);
+		if (this->Log)
+			std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n",
+			    __FUNCTION__, __LINE__, m_id, *appendNum);
 
 		// 对某个消息发送了多遍（心跳时就会再发送），那么一条消息会导致n次上涨
 		m_matchIndex[server] = std::max({m_matchIndex[server],
@@ -624,24 +644,29 @@ bool raft::sendAppendEntries(int server,
 			// leader 只在有日志需要提交的前提下更新 commit index；
 			if (args->entries_size() > 0)
 			{
-				// 打印日志信息
-				std::print("{}:{}::\t\targs->entries(args->entries_size()-1)."
-				           "logterm(){"
-				           "}, m_currentTerm{}",
-				    __FUNCTION__, __LINE__,
-				    args->entries(args->entries_size() - 1).logterm(),
-				    m_currentTerm);
+				if (this->Log)
+					// 打印日志信息
+					std::print(
+					    "{}:{}::\t\targs->entries(args->entries_size()-1)."
+					    "logterm(){"
+					    "}, m_currentTerm{}",
+					    __FUNCTION__, __LINE__,
+					    args->entries(args->entries_size() - 1).logterm(),
+					    m_currentTerm);
 
 				if (args->entries(args->entries_size() - 1).logterm() ==
 				    m_currentTerm)
 				{
-					// 打印日志信息
-					std::print(
-					    "{}:{}::\t\t當前term有log成功提交，更新leader的m_"
-					    "commitIndex "
-					    "from{} to{}",
-					    __FUNCTION__, __LINE__, m_commitIndex,
-					    args->prevlogindex() + args->entries_size());
+					if (this->Log)
+					{
+						// 打印日志信息
+						std::print(
+						    "{}:{}::\t\t當前term有log成功提交，更新leader的m_"
+						    "commitIndex "
+						    "from{} to{}",
+						    __FUNCTION__, __LINE__, m_commitIndex,
+						    args->prevlogindex() + args->entries_size());
+					}
 					// 更新 commit index
 					m_commitIndex = std::max({m_commitIndex,
 					    args->prevlogindex() + args->entries_size()});
@@ -670,9 +695,11 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		response->set_success(false);
 		response->set_term(m_currentTerm);
 		response->set_updatenextindex(-100);
-		std::print("{}:{}::\t\trf{} 拒绝了 因为Leader{}的term{}< rf{}.term{}\n",
-		    __FUNCTION__, __LINE__, m_id, request->leaderid(), request->term(),
-		    m_id, m_currentTerm);
+		if (this->Log)
+			std::print(
+			    "{}:{}::\t\trf{} 拒绝了 因为Leader{}的term{}< rf{}.term{}\n",
+			    __FUNCTION__, __LINE__, m_id, request->leaderid(),
+			    request->term(), m_id, m_currentTerm);
 		return; // 直接返回：无效的AE，不需要重置定时器
 	}
 
@@ -778,13 +805,16 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 				if (m_logs[v_logindex].logterm() == log.logterm() &&
 				    m_logs[v_logindex].command() != log.command())
 				{
-					// 相同的 index、相同的 term、但是不同的 command 内容
-					std::print("{}:{}::\t\trf{}两节点logIndex{}和term{}"
-					           "相同，但是其command却不同"
-					           "{}:{}:::{}:{}！！\n",
-					    __FUNCTION__, __LINE__, m_id, log.logindex(),
-					    log.logterm(), m_id, m_logs[v_logindex].command(),
-					    request->leaderid(), log.command());
+					if (this->Log)
+					{
+						// 相同的 index、相同的 term、但是不同的 command 内容
+						std::print("{}:{}::\t\trf{}两节点logIndex{}和term{}"
+						           "相同，但是其command却不同"
+						           "{}:{}:::{}:{}！！\n",
+						    __FUNCTION__, __LINE__, m_id, log.logindex(),
+						    log.logterm(), m_id, m_logs[v_logindex].command(),
+						    request->leaderid(), log.command());
+					}
 					exit(-1); // 程序出现严重逻辑问题
 				}
 				// 强制跟随 leader 的状态
@@ -1073,8 +1103,9 @@ void raft::applierTicker()
 		std::unique_lock<std::mutex> lock(m_mtx);
 		if (m_state == leader)
 		{
-			std::print("{}:{}raft{} m_lastApplied{} m_commitIndex{}\n",
-			    GetTime(), __func__, m_id, m_lastApplied, m_commitIndex);
+			if (this->Log)
+				std::print("{}:{}raft{} m_lastApplied{} m_commitIndex{}\n",
+				    GetTime(), __func__, m_id, m_lastApplied, m_commitIndex);
 		}
 
 		auto applyMsgs = getApplyLogs();
@@ -1083,10 +1114,14 @@ void raft::applierTicker()
 
 		if (!applyMsgs.empty())
 		{
-			// [func- Raft::applierTicker()-raft{%d}]
-			// 向kvserver報告的applyMsgs長度爲：{%d}", m_me, applyMsgs.size()
-			std::print("{}:{}raft{} 向kvserver報告的applyMsgs長度爲:{}\n",
-			    GetTime(), __func__, m_id, applyMsgs.size());
+			if (this->Log)
+			{
+				// [func- Raft::applierTicker()-raft{%d}]
+				// 向kvserver報告的applyMsgs長度爲：{%d}", m_me,
+				// applyMsgs.size()
+				std::print("{}:{}raft{} 向kvserver報告的applyMsgs長度爲:{}\n",
+				    GetTime(), __func__, m_id, applyMsgs.size());
+			}
 		}
 		for (const auto &msg : applyMsgs)
 		{
