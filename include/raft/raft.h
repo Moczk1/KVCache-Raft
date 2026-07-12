@@ -2,7 +2,6 @@
 #include "RaftRpcUtil.h"
 #include "common/Alias.h"
 #include "common/ApplyMsg.h"
-#include "common/Constant.h"
 #include "common/LockQueue.h"
 #include "common/util.h"
 #include "persist/Persister.h"
@@ -16,6 +15,7 @@
 #include <vector>
 
 #include "../coroutine/include/ioscheduler.h"
+#include "threadpool/ThreadPool.h"
 
 using raftRpcProctoc::LogEntry;
 
@@ -63,6 +63,8 @@ class raft : public raftRpcProctoc::raftRpc
 
 	TimePoint m_lastElectionTime;
 	TimePoint m_lastHearBeatTime;
+
+	std::unique_ptr<moczkrin::ThreadPool>  m_threadPool;
 
   private:
 	inline TimePoint now() { return std::chrono::system_clock::now(); }

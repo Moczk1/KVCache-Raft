@@ -20,7 +20,7 @@ namespace mraft
 {
 void Mrpcchannel::CallMethod(const MethodDescriptor *method,
     RpcController *controller, const Message *request, Message *response,
-    Closure *done)
+    Closure *done) 
 {
 	if (m_clientFd == -1)
 	{
