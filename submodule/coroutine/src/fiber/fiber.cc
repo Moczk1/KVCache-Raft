@@ -1,6 +1,6 @@
 #include "fiber.h"
 
-static bool debug = true;
+static bool debug = false;
 
 namespace moczkrin
 {
@@ -131,8 +131,8 @@ namespace moczkrin
         {
             free(m_stack);
         }
-        if (debug)
-            std::cout << "~Fiber(): id = " << m_id << std::endl;
+        // if (debug)
+        //     std::cout << "~Fiber(): id = " << m_id << std::endl;
     }
 
     /**

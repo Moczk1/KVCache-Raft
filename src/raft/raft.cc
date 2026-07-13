@@ -7,7 +7,6 @@
 #include "raft/RaftRpcUtil.h"
 #include "raftRPC.pb.h"
 #include "threadpool/ThreadPool.h"
-
 #include <algorithm>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -23,8 +22,16 @@
 #include <ratio>
 #include <sstream>
 #include <thread>
+#include <tuple>
 #include <unistd.h>
+#include <utility>
 #include <vector>
+
+#define __Method_switch__ 0
+#define __DIRECT_THREAD__ 0
+#define __THREAD_POOL__ 1
+#define __COROUTINE__ 2
+#define __ASYCN__ 3
 
 namespace mraft
 {
@@ -71,25 +78,31 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		}
 	}
 
-	// 	ThreadPool(size_t corePoolSize, size_t maxPoolSize, long keepAliveTime,
-	// TimeUnit unit, QueueType qtype, size_t qsize = INT_MAX - 1,
-	// std::string name = "nullptr", RejectStrategy rs = AbortPolicy);
+#if __Method_switch__ == __THREAD_POOL__
 	m_threadPool = std::make_unique<moczkrin::ThreadPool>(20, 20, 300,
 	    moczkrin::ThreadPool::millisecond,
-	    moczkrin::ThreadPool::LinkedBlockingQueue, 0);
+	    moczkrin::ThreadPool::LinkedBlockingQueue, INT_MAX - 1, "threadpool",
+	    moczkrin::ThreadPool::CallerRunsPolicy);
+	m_threadPool->execute(0, &raft::leaderHeartBeatTricker, this);
+	m_threadPool->execute(0, &raft::electionTimeOutTicker, this);
+	m_threadPool->execute(0, &raft::applierTicker, this);
+#endif
 
-	// m_threadPool->execute(0, &raft::leaderHeartBeatTricker, this);
-	// m_threadPool->execute(0, &raft::electionTimeOutTicker, this);
-	// m_threadPool->execute(0, &raft::applierTicker, this);
-	m_ioManager = std::make_unique<moczkrin::IOManager>(1, false);
+#if __Method_switch__ == __COROUTINE__ || __Method_switch__ == __DIRECT_THREAD__
+	m_ioManager = std::make_unique<moczkrin::IOManager>(5, false);
 	m_ioManager->scheduleLock(
 	    [this] -> void { this->leaderHeartBeatTricker(); });
 	m_ioManager->scheduleLock(
 	    [this] -> void { this->electionTimeOutTicker(); });
-	// std::thread t(&raft::leaderHeartBeatTricker, this);
-	// t.detach();
-	// std::thread t2(&raft::electionTimeOutTicker, this);
-	// t2.detach();
+#endif
+
+// #if __Method_switch__ == __DIRECT_THREAD__
+// 	std::thread t(&raft::leaderHeartBeatTricker, this);
+// 	t.detach();
+// 	std::thread t2(&raft::electionTimeOutTicker, this);
+// 	t2.detach();
+// #endif
+
 	// m_ioManager->scheduleLock([this] -> void { this->applierTicker(); });
 	std::thread t3(&raft::applierTicker, this);
 	t3.detach();
@@ -195,6 +208,11 @@ void raft::doElection()
 		m_lastElectionTime = now();
 
 		// 给所有的 peer 发送选举 rpc
+		std::vector<
+		    std::tuple<int, std::shared_ptr<raftRpcProctoc::RequestVoteArgs>,
+		        std::shared_ptr<raftRpcProctoc::RequestVoteReply>>>
+		    requests;
+
 		for (int i = 0; i < m_peers.size(); i++)
 		{
 			if (i == m_id)
@@ -207,43 +225,64 @@ void raft::doElection()
 			args->set_lastlogterm(lastLogTerm);
 			args->set_candidateid(m_id);
 			args->set_term(m_currentTerm);
-			auto ans = std::make_shared<raftRpcProctoc::RequestVoteReply>();
+			auto reply = std::make_shared<raftRpcProctoc::RequestVoteReply>();
 
-			// std::thread t(&raft::sendRequestVote, this, i, args, ans, votedNum);
-			// t.detach();
+			requests.push_back(std::make_tuple(i, args, reply));
 
-			// sendRequestVote(i, args, ans, votedNum);
-			m_threadPool->execute(
-			    0, &raft::sendRequestVote, this, i, args, ans, votedNum);
+#if __Method_switch__ == __DIRECT_THREAD__
+			std::thread t(
+			    &raft::sendRequestVote, this, i, args, reply, votedNum);
+			t.detach();
+
+#endif
 		}
+#if __Method_switch__ != __DIRECT_THREAD__
+		lock.unlock();
+		for (auto &[i, args, reply] : requests)
+		{
+
+#if __Method_switch__ == __THREAD_POOL__
+			m_threadPool->execute(
+			    0, &raft::sendRequestVote, this, i, args, reply, votedNum);
+#endif
+
+#if __Method_switch__ == __COROUTINE__
+			m_ioManager->scheduleLock([this, i, args, reply, votedNum]()
+			    { this->sendRequestVote(i, args, reply, votedNum); });
+#endif
+
+			// m_peers[i]->RequestVoteAsync(args,
+			//     [this, i, args, votedNum](bool ok,
+			//         std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply)
+			//     { handleRequestVoteResponse(i, args, reply, votedNum, ok);
+			//     });
+
+#if __Method_switch__ == __ASYCN__
+			m_ioManager->scheduleLock(
+			    [peer = m_peers[i], args,
+			        callback =
+			            [this, i, args, votedNum](bool ok,
+			                std::shared_ptr<raftRpcProctoc::RequestVoteReply>
+			                    reply)
+			        {
+				        handleRequestVoteResponse(i, args, reply, votedNum, ok);
+			        }]() { peer->RequestVoteAsync(args, callback); });
+#endif
+		}
+#endif
 	}
 }
 
-bool raft::sendRequestVote(int i,
+void raft::handleRequestVoteResponse(int peer,
     std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
     std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
-    std::shared_ptr<int> votedNum)
+    std::shared_ptr<int> votedNum, bool ok)
 {
-	// auto start = now();
-
-	if (this->Log)
-		std::print("[raft]:{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n",
-		    __FUNCTION__, __LINE__, m_id, i);
-	// 发送消息
-	bool status = m_peers[i]->RequestVote(args.get(), reply.get());
-	if (!status)
+	if (!ok)
 	{
-		return status; // 返回连接失败标志
+		// return ok; // 返回连接失败标志
+		return; // 返回连接失败标志
 	}
-	// auto end = now();
-
-	// if (this->Log)
-	// 	std::print("[raft]{}:{}::\t\trf{}] 向server{} 發送 RequestVote "
-	// 	           "完畢，耗時:{} ms\n",
-	// 	    __FUNCTION__, __LINE__, m_id, i, end - start);
-
-	// 接收到消息，根据消息对自己的状态做修改
-	// 上锁
 	std::unique_lock<std::mutex> lock(m_mtx);
 
 	/**
@@ -259,20 +298,20 @@ bool raft::sendRequestVote(int i,
 		// 持久化
 		DeferClass defer([this] { persist(); });
 
-		return true;
+		return;
 	}
 	// 2.
 	else if (reply->term() < m_currentTerm)
 	{ // term 事件时间具有最高优先级
 		// reply 没有被请求重置到自己的term，说明对方拒绝
-		return true;
+		return;
 	}
 	assert(reply->term() == m_currentTerm); // 断言保证后续的正确性
 
 	// 判断对方的投票情况是否真实投递给自己
 	// 原因：同一个 term 下，有多个 candidate 希望成为 leader
 	if (reply->votegranted() == false) // 仍然拒绝请求
-		return true;
+		return;
 
 	assert(reply->votegranted() == true); // 接收请求
 
@@ -285,17 +324,17 @@ bool raft::sendRequestVote(int i,
 		if (m_state == leader)
 		{
 			if (this->Debug)
-				std::print(
-				    "{}:{}::\t\trf{}]  term:{} 同一个term当两次领导，error\n",
+				std::print("{}:{}::\t\trf{}]  term:{} "
+				           "同一个term当两次领导，error\n",
 				    __FUNCTION__, __LINE__, m_id, m_currentTerm);
 		}
 
 		m_state = leader;
 
 		if (this->Debug)
-			std::print(
-			    "[raft]sendRequestVote rf{}] elect success,current term:{}"
-			    ",lastLogIndex:{}\n",
+			std::print("[raft]sendRequestVote rf{}] elect "
+			           "success,current term:{}"
+			           ",lastLogIndex:{}\n",
 			    m_id, m_currentTerm, getLastLogIndex());
 		// 修改本地保存的 远端服务器的相关缓存
 		for (int i = 0; i < m_peers.size(); i++)
@@ -314,7 +353,112 @@ bool raft::sendRequestVote(int i,
 		// 持久化
 		DeferClass defer([this] { persist(); });
 	}
+	return;
+}
+
+bool raft::sendRequestVote(int i,
+    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
+    std::shared_ptr<int> votedNum)
+{
+	// auto start = now();
+
+	if (this->Log)
+		std::print("[raft]:{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n",
+		    __FUNCTION__, __LINE__, m_id, i);
+	// 发送消息
+	bool status = m_peers[i]->RequestVote(args.get(), reply.get());
+
+	handleRequestVoteResponse(i, args, reply, votedNum, status);
+
+	return status;
+	/**
+	if (!status)
+	{
+	    return status; // 返回连接失败标志
+	}
+	// auto end = now();
+
+	// if (this->Log)
+	// 	std::print("[raft]{}:{}::\t\trf{}] 向server{} 發送 RequestVote "
+	// 	           "完畢，耗時:{} ms\n",
+	// 	    __FUNCTION__, __LINE__, m_id, i, end - start);
+
+	// 接收到消息，根据消息对自己的状态做修改
+	// 上锁
+	std::unique_lock<std::mutex> lock(m_mtx);
+
+
+	//   根据 term 的情况有三种变化
+
+	// 1.
+	if (reply->term() > m_currentTerm) // 没有成功进入 leader 状态
+	{
+	    m_currentTerm = reply->term();
+	    m_state = follower;
+	    m_voteForId = -1; //
+
+	    // 持久化
+	    DeferClass defer([this] { persist(); });
+
+	    return true;
+	}
+	// 2.
+	else if (reply->term() < m_currentTerm)
+	{ // term 事件时间具有最高优先级
+	    // reply 没有被请求重置到自己的term，说明对方拒绝
+	    return true;
+	}
+	assert(reply->term() == m_currentTerm); // 断言保证后续的正确性
+
+	// 判断对方的投票情况是否真实投递给自己
+	// 原因：同一个 term 下，有多个 candidate 希望成为 leader
+	if (reply->votegranted() == false) // 仍然拒绝请求
+	    return true;
+
+	assert(reply->votegranted() == true); // 接收请求
+
+	// 计票
+	*votedNum += 1;
+
+	if (*votedNum >=
+	    m_peers.size() / 2 + 1) // 如果满足过半数同意->成功晋升leader
+	{
+	    if (m_state == leader)
+	    {
+	        if (this->Debug)
+	            std::print(
+	                "{}:{}::\t\trf{}]  term:{} 同一个term当两次领导，error\n",
+	                __FUNCTION__, __LINE__, m_id, m_currentTerm);
+	    }
+
+	    m_state = leader;
+
+	    if (this->Debug)
+	        std::print(
+	            "[raft]sendRequestVote rf{}] elect success,current term:{}"
+	            ",lastLogIndex:{}\n",
+	            m_id, m_currentTerm, getLastLogIndex());
+	    // 修改本地保存的 远端服务器的相关缓存
+	    for (int i = 0; i < m_peers.size(); i++)
+	    {
+	        if (i == m_id)
+	            continue;
+	        m_nextIndex[i] =
+	            getLastLogIndex() + 1; // 远端想要的下一个 index 编号
+	        m_matchIndex[i] = 0;       // 每换一个领导则重置远端的 commit 号
+	    }
+
+	    // 启动 成为 leader 后的定时任务
+	    std::thread t(&raft::doHeartBeat, this);
+	    t.detach();
+
+	    // 持久化
+	    DeferClass defer([this] { persist(); });
+	}
 	return true;
+
+	 */
 }
 
 // server 远端接收到 rpc 请求
@@ -474,6 +618,7 @@ void raft::leaderHeartBeatTricker()
 		doHeartBeat();
 	}
 }
+
 void raft::doHeartBeat()
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
@@ -489,7 +634,14 @@ void raft::doHeartBeat()
 		// 	    __FUNCTION__, __LINE__, m_id);
 	}
 	// 正确返回的节点数量
+
 	auto appedNum = std::make_shared<int>(1);
+
+	std::vector<
+	    std::tuple<int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
+	        std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
+	        std::shared_ptr<int>>>
+	    requests;
 
 	for (int i = 0; i < m_peers.size(); i++)
 	{
@@ -562,38 +714,75 @@ void raft::doHeartBeat()
 		auto appendEntriesReply =
 		    std::make_shared<raftRpcProctoc::AppendEntriesReply>();
 
+		requests.emplace_back(
+		    i, appendEntriesArgs, appendEntriesReply, appedNum);
+
 		// std::thread t(&raft::sendAppendEntries, this, i, appendEntriesArgs,
 		//     appendEntriesReply, appedNum);
 		// t.detach();
 
-		// sendAppendEntries(i, appendEntriesArgs, appendEntriesReply,
-		// appedNum);
-		m_threadPool->execute(0, &raft::sendAppendEntries, this, i,
-		    appendEntriesArgs, appendEntriesReply, appedNum);
+		// m_threadPool->execute(0, &raft::sendAppendEntries, this, i,
+		//     appendEntriesArgs, appendEntriesReply, appedNum);
+	}
+
+	lock.unlock();
+	// for (auto &[peer, args, reply] : requests)
+	// 		{
+	// 			m_peers[peer]->RequestVoteAsync(args,
+	// 				[this, peer, args, votedNum](bool ok,
+	// 					std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply)
+	// 				{
+	// 					handleRequestVoteResponse(peer, args, reply, votedNum,
+	// ok);
+	// 				});
+	// 		}
+	for (auto &[i, args, reply, appendNum] : requests)
+	{
+
+#if __Method_switch__ == __DIRECT_THREAD__
+		std::thread t(
+		    &raft::sendAppendEntries, this, i, args, reply, appendNum);
+		t.detach();
+#endif
+
+#if __Method_switch__ == __THREAD_POOL__
+		m_threadPool->execute(
+		    0, &raft::sendAppendEntries, this, i, args, reply, appedNum);
+#endif
+
+#if __Method_switch__ == __COROUTINE__
+		m_ioManager->scheduleLock([this, i, args, reply, appendNum]()
+		    { this->sendAppendEntries(i, args, reply, appendNum); });
+#endif
+
+#if __Method_switch__ == __ASYCN__
+		m_ioManager->scheduleLock(
+		    [peer = m_peers[i], args,
+		        callback =
+		            [this, i, args, appendNum](bool ok,
+		                std::shared_ptr<raftRpcProctoc::AppendEntriesReply>
+		                    reply)
+		        { handleAppendEntries(i, args, reply, appendNum, ok); }]()
+		    { peer->AppendEntriesAsync(args, callback); });
+#endif
 	}
 
 	// 每次发送 更新心跳时间
 	m_lastHearBeatTime = now();
 }
-bool raft::sendAppendEntries(int server,
+
+void raft::handleAppendEntries(int server,
     std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
     std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
-    std::shared_ptr<int> appendNum)
+    std::shared_ptr<int> appendNum, bool ok)
+
 {
-
-	if (this->Log)
-		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc開始 ， "
-		           "args->entries_size():{}\n",
-		    __FUNCTION__, __LINE__, m_id, server, args->entries_size());
-
-	bool status = m_peers[server]->AppendEntries(args.get(), reply.get());
-
-	if (!status)
+	if (!ok)
 	{
 		if (this->Log)
 			std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
 			    __FUNCTION__, __LINE__, m_id, server);
-		return status;
+		return;
 	}
 
 	if (this->Log)
@@ -610,14 +799,14 @@ bool raft::sendAppendEntries(int server,
 		m_currentTerm = reply->term();
 		m_state = follower;
 		m_voteForId = -1;
-		return true;
+		return;
 	}
 	else if (reply->term() < m_currentTerm) // 2.
 	// server 的term
 	// 比自己小原则上leader应该会强制同步其他节点到自己的term上
 	// 这里不做任何处理，因为leader term 仍然大于 follower term
 	{
-		return true;
+		return;
 	}
 
 	// 3.
@@ -626,7 +815,7 @@ bool raft::sendAppendEntries(int server,
 	if (m_state != leader)
 	// 短暂的瞬间发生了 leader 权限的转移 后续无需执行
 	{
-		return true;
+		return;
 	}
 	// 日志同步失败
 	if (!reply->success())
@@ -704,7 +893,145 @@ bool raft::sendAppendEntries(int server,
 		}
 	}
 
+	return;
+}
+
+bool raft::sendAppendEntries(int server,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
+    std::shared_ptr<int> appendNum)
+{
+
+	if (this->Log)
+		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc開始 ， "
+		           "args->entries_size():{}\n",
+		    __FUNCTION__, __LINE__, m_id, server, args->entries_size());
+
+	bool status = m_peers[server]->AppendEntries(args.get(), reply.get());
+
+	handleAppendEntries(server, args, reply, appendNum, status);
+
+	return status;
+	/**
+	if (!status)
+	{
+	    if (this->Log)
+	        std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
+	            __FUNCTION__, __LINE__, m_id, server);
+	    return status;
+	}
+
+	if (this->Log)
+	    std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n",
+	        __FUNCTION__, __LINE__, m_id, server);
+
+	std::unique_lock<std::mutex> lock(m_mtx);
+
+	//  对 reply 进行检查
+	// 3种情况
+	// 1.
+	if (reply->term() > m_currentTerm) // server 的事件时间比自己新，需要赶上
+	{
+	    m_currentTerm = reply->term();
+	    m_state = follower;
+	    m_voteForId = -1;
+	    return true;
+	}
+	else if (reply->term() < m_currentTerm) // 2.
+	// server 的term
+	// 比自己小原则上leader应该会强制同步其他节点到自己的term上
+	// 这里不做任何处理，因为leader term 仍然大于 follower term
+	{
+	    return true;
+	}
+
+	// 3.
+	assert(reply->term() == m_currentTerm);
+
+	if (m_state != leader)
+	// 短暂的瞬间发生了 leader 权限的转移 后续无需执行
+	{
+	    return true;
+	}
+	// 日志同步失败
+	if (!reply->success())
+	{
+	    // term 匹配的前提下，判单是 rpc 延迟导致的 term 相符
+	    if (reply->updatenextindex() != -100)
+	    {
+	        if (this->Log)
+	            std::print("{}:{}::\t\trf{} "
+	                       "返回的日志term相等，但是不匹配，回缩nextInd"
+	                       "ex[]：{}\n",
+	                __FUNCTION__, __LINE__, server, reply->updatenextindex());
+	        m_nextIndex[server] = reply->updatenextindex(); // 失败不更新
+	        // matchindex,重置nextindex，使得后续发送重新开始
+	    }
+	}
+	else
+	{ // success！
+	    *appendNum += 1;
+	    if (this->Log)
+	        std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n",
+	            __FUNCTION__, __LINE__, m_id, *appendNum);
+
+	    // 对某个消息发送了多遍（心跳时就会再发送），那么一条消息会导致n次上涨
+	    m_matchIndex[server] = std::max({m_matchIndex[server],
+	        args->prevlogindex() + args->entries_size()});
+	    m_nextIndex[server] = m_matchIndex[server] + 1;
+
+	    int lastLogIndexandTerm[2] = {0, 0};
+	    getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
+
+	    // 无论什么情况，远端需要的nextindex
+	    // 都必须小于等于自己日志的index+1
+	    assert(m_nextIndex[server] <= lastLogIndexandTerm[0] + 1);
+
+	    if (*appendNum >= 1 + m_peers.size() / 2)
+	    {
+	        *appendNum = 0; // 保证幂等性
+
+	        // leader 只在有日志需要提交的前提下更新 commit index；
+	        if (args->entries_size() > 0)
+	        {
+	            if (this->Log)
+	                // 打印日志信息
+	                std::print("{}:{}::\t\targs->entries(args->entries_"
+	                           "size()-1)."
+	                           "logterm(){"
+	                           "}, m_currentTerm{}",
+	                    __FUNCTION__, __LINE__,
+	                    args->entries(args->entries_size() - 1).logterm(),
+	                    m_currentTerm);
+
+	            if (args->entries(args->entries_size() - 1).logterm() ==
+	                m_currentTerm)
+	            {
+	                if (this->Log)
+	                {
+	                    // 打印日志信息
+	                    std::print("{}:{}::"
+	                               "\t\t當前term有log成功提交，更新leader的m_"
+	                               "commitIndex "
+	                               "from{} to{}",
+	                        __FUNCTION__, __LINE__, m_commitIndex,
+	                        args->prevlogindex() + args->entries_size());
+	                }
+	                // 更新 commit index
+	                m_commitIndex = std::max({m_commitIndex,
+	                    args->prevlogindex() + args->entries_size()});
+	            }
+	        }
+
+	        // 保证系统运行的正确性：无论何时 commitindex <=
+	        // loglastindex
+	        assert(m_commitIndex <= lastLogIndexandTerm[0]);
+	    }
+	}
+
 	return true;
+
+	*/
 }
 
 // 远端执行 rpc 请求

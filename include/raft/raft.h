@@ -85,6 +85,11 @@ class raft : public raftRpcProctoc::raftRpc
 	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
 	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
 	    std::shared_ptr<int> appendNum);
+	void handleRequestVoteResponse(int peer,
+	    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+	    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
+	    std::shared_ptr<int> votedNum, bool ok);
+
 	void doHeartBeat();
 	void leaderHeartBeatTricker();
 
@@ -112,6 +117,10 @@ class raft : public raftRpcProctoc::raftRpc
 	    std::shared_ptr<int>);
 	void doElection();
 	void electionTimeOutTicker();
+	void handleAppendEntries(int server,
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
+	    std::shared_ptr<int> appendNum, bool ok);
 
 	// 状态
 	// void leaderUpdateCommitIndex();

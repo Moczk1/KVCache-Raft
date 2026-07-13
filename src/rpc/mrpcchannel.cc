@@ -3,24 +3,41 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <functional>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
+#include <memory>
 #include <netinet/in.h>
 #include <print>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <utility>
 
+#include "fiber.h"
+#include "ioscheduler.h"
 #include "rpc/mrpcchannel.h"
 #include "rpcheader.pb.h"
+#include "scheduler.h"
+#include "thread.h"
 
 namespace mraft
 {
 void Mrpcchannel::CallMethod(const MethodDescriptor *method,
     RpcController *controller, const Message *request, Message *response,
-    Closure *done) 
+    Closure *done)
+{
+	CallMethodImpl(method, controller, request, response);
+	if (done != nullptr)
+	{
+		done->Run();
+	}
+}
+
+void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
+    RpcController *controller, const Message *request, Message *response)
 {
 	if (m_clientFd == -1)
 	{
@@ -155,6 +172,15 @@ Mrpcchannel::Mrpcchannel(std::string ip, short port, bool connectNow, int retry)
 	}
 }
 
+Mrpcchannel::~Mrpcchannel()
+{
+	if (m_clientFd >= 0)
+	{
+		::close(m_clientFd);
+		m_clientFd = -1;
+	}
+}
+
 bool Mrpcchannel::newConnect(const char *ip, uint16_t port, std::string *errMsg)
 {
 	int clientFd = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -166,7 +192,7 @@ bool Mrpcchannel::newConnect(const char *ip, uint16_t port, std::string *errMsg)
 	}
 	m_clientFd = clientFd;
 
-	struct sockaddr_in addr;
+	struct sockaddr_in addr{};
 	addr.sin_addr.s_addr = inet_addr(ip);
 	addr.sin_port = htons(port);
 	addr.sin_family = AF_INET;
@@ -180,6 +206,165 @@ bool Mrpcchannel::newConnect(const char *ip, uint16_t port, std::string *errMsg)
 	}
 	m_clientFd = clientFd;
 	return true;
+}
+
+MrpcAsyncChannel::MrpcAsyncChannel(std::shared_ptr<Mrpcchannel> transport)
+    // 必须在 RPC Fiber 内延迟建连，socket/connect hook 才能接管阻塞点。
+    : m_channel(transport)
+{
+}
+
+void MrpcAsyncChannel::saveCallee(ControllerPtr controller, MessagePtr request,
+    MessagePtr response, ClosurePtr done)
+{
+	if (m_started.load(std::memory_order_acquire))
+	{
+		if (controller != nullptr)
+		{
+			controller->SetFailed(
+			    "cannot replace async RPC arguments after CallMethod()");
+		}
+		return;
+	}
+
+	m_controller = std::move(controller);
+	m_request = std::move(request);
+	m_response = std::move(response);
+	m_done = std::move(done);
+	m_prepared.store(m_controller != nullptr && m_request != nullptr &&
+	                     m_response != nullptr,
+	    std::memory_order_release);
+}
+
+void MrpcAsyncChannel::CallMethod(const MethodDescriptor *method,
+    RpcController *controller, const Message *request, Message *response,
+    Closure *done)
+{
+	if (!m_prepared.load(std::memory_order_acquire))
+	{
+		fail("saveCallee() must be called before async CallMethod()",
+		    controller);
+		return;
+	}
+
+	if (controller != m_controller.get() || request != m_request.get() ||
+	    response != m_response.get() ||
+	    (done != nullptr && done != m_done.get()))
+	{
+		fail("CallMethod() arguments must match the objects saved by "
+		     "saveCallee()",
+		    controller);
+		return;
+	}
+
+	bool expected = false;
+	if (!m_started.compare_exchange_strong(
+	        expected, true, std::memory_order_acq_rel))
+	{
+		controller->SetFailed(
+		    "MrpcAsyncChannel supports only one in-flight RPC call");
+		return;
+	}
+
+	m_scheduler = moczkrin::Scheduler::GetThis();
+	if (m_scheduler == nullptr || moczkrin::IOManager::GetThis() == nullptr)
+	{
+		fail("async CallMethod() must run inside an IOManager Fiber",
+		    controller);
+		return;
+	}
+
+	m_callerFiber = moczkrin::Fiber::GetThis();
+	m_callerThread = moczkrin::Thread::GetThreadId();
+
+	auto self = weak_from_this().lock();
+	if (self == nullptr)
+	{
+		fail("MrpcAsyncChannel must be owned by std::shared_ptr", controller);
+		return;
+	}
+
+	m_scheduler->scheduleLock(std::function<void()>(
+	    [self, method]()
+	    {
+		    self->m_channel->CallMethod(method, self->m_controller.get(),
+		        self->m_request.get(), self->m_response.get(), nullptr);
+		    self->postCompletion();
+	    }));
+}
+
+void MrpcAsyncChannel::wait()
+{
+	if (!m_started.load(std::memory_order_acquire))
+	{
+		if (m_controller != nullptr)
+		{
+			m_controller->SetFailed("wait() called before CallMethod()");
+		}
+		return;
+	}
+
+	if (m_finished.load(std::memory_order_acquire))
+	{
+		return;
+	}
+
+	if (moczkrin::Scheduler::GetThis() != m_scheduler ||
+	    moczkrin::Fiber::GetThis() != m_callerFiber)
+	{
+		m_controller->SetFailed(
+		    "wait() must be called by the Fiber that called CallMethod()");
+		return;
+	}
+
+	m_waiting.store(true, std::memory_order_release);
+	while (!m_finished.load(std::memory_order_acquire))
+	{
+		m_callerFiber->yield();
+	}
+}
+
+bool MrpcAsyncChannel::finished() const
+{
+	return m_finished.load(std::memory_order_acquire);
+}
+
+void MrpcAsyncChannel::fail(
+    const std::string &reason, RpcController *fallbackController)
+{
+	RpcController *target =
+	    m_controller != nullptr ? m_controller.get() : fallbackController;
+	if (target != nullptr)
+	{
+		target->SetFailed(reason);
+	}
+	if (m_done != nullptr)
+	{
+		m_done->Run();
+	}
+	m_finished.store(true, std::memory_order_release);
+}
+
+void MrpcAsyncChannel::postCompletion()
+{
+	auto self = shared_from_this();
+	m_scheduler->scheduleLock(
+	    std::function<void()>(
+	        [self]()
+	        {
+		        // 固定回到发起调用的线程，语义与 TinyRPC 回原 Reactor 一致。
+		        if (self->m_done != nullptr)
+		        {
+			        self->m_done->Run();
+		        }
+		        self->m_finished.store(true, std::memory_order_release);
+		        if (self->m_waiting.load(std::memory_order_acquire))
+		        {
+			        self->m_scheduler->scheduleLock(
+			            self->m_callerFiber, self->m_callerThread);
+		        }
+	        }),
+	    m_callerThread);
 }
 
 } // namespace mraft

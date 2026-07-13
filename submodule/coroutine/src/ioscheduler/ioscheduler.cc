@@ -386,7 +386,7 @@ namespace moczkrin
             }  // end for 
             
             // test print out
-            std::cout << "Fiber" << std::endl;
+            // std::cout << "Fiber" << std::endl;
             // idle 线程一定需要在 while 循环里手动 yield，否则 idle 线程将在Fiber的MainFunc()中释放自己的栈
             Fiber::GetThis()->yield();
         }   // end while

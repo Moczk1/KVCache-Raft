@@ -104,7 +104,7 @@ namespace moczkrin
         if (debug)
             std::cout << "Schedule::run() starts in thread: " << thread_id << std::endl;
 
-        // set_hook_enable(true);
+        set_hook_enable(true);
 
         SetThis();
 

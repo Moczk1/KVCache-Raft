@@ -3,14 +3,19 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include "rpc/mrpcchannel.h"
 
 namespace mraft
 {
 class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 {
   private:
-	std::unique_ptr<raftRpcProctoc::raftRpc_Stub> m_stub;
+	std::shared_ptr<raftRpcProctoc::raftRpc_Stub> m_stub;
 	std::mutex m_stubMtx;
+
+	std::string m_ip;
+	short m_port;
+	std::shared_ptr<Mrpcchannel> m_asyncChannel;
 
   public:
 	using AppendEntriesCallback = std::function<void(
@@ -38,6 +43,8 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	bool RequestVote(raftRpcProctoc::RequestVoteArgs *args,
 	    raftRpcProctoc::RequestVoteReply *response);
 
+	
+
 	/**
 	 * @brief 创建channel -> 创建 stub -> 完成raftuitl创建
 	 * @param IP  远端的 ip 地址
@@ -52,5 +59,25 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 
 	RaftRpcUtil &operator=(RaftRpcUtil &rhs) = delete;
 	RaftRpcUtil &operator=(RaftRpcUtil &&rhs) = delete;
+
+	class FunctionClosure final : public google::protobuf::Closure
+	{
+	  public:
+		explicit FunctionClosure(std::function<void()> callback)
+		    : m_callback(std::move(callback))
+		{
+		}
+
+		void Run() override
+		{
+			if (m_callback)
+			{
+				m_callback();
+			}
+		}
+
+	  private:
+		std::function<void()> m_callback;
+	};
 };
 } // namespace mraft
