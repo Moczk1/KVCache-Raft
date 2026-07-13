@@ -17,8 +17,10 @@ find_package(Protobuf REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization program_options context)
 
 include_directories(
-    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include,
     ${PROJECT_SOURCE_DIR}/proto
+    ${PROJECT_SOURCE_DIR}/submodule/coroutine/include
+    ${PROJECT_SOURCE_DIR}/submodule/threadpool
 )
 # 公共源文件
 file(GLOB_RECURSE KVRAFT_SRC
@@ -27,7 +29,8 @@ file(GLOB_RECURSE KVRAFT_SRC
 )
 
 # 添加 coroutine 子项目
-add_subdirectory(coroutine)
+add_subdirectory(submodule/coroutine)
+add_subdirectory(submodule/threadpool)
 
 # 公共静态库：包含 src 下所有实现
 add_library(kvraft_lib STATIC
@@ -48,7 +51,8 @@ target_link_libraries(kvraft_lib
 	Boost::context
 	muduo_net
     muduo_base
-	coroutine_lib
+	mcoroutine
+    mthreadpool
     pthread
 )
 

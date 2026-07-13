@@ -1,0 +1,7 @@
+[submodule "coroutine"]
+	path = submodule/coroutine
+	url = https://github.com/Moczk1/coroutine.git
+
+[submodule "threadpool"]
+	path = submodule/threadpool
+	url = https://github.com/Moczk1/threadpool.git
