@@ -1,0 +1,6 @@
+[submodule "submodule/coroutine"]
+	path = submodule/coroutine
+	url = git@github.com:Moczk1/coroutine.git
+[submodule "submodule/threadpool"]
+	path = submodule/threadpool
+	url = git@github.com:Moczk1/threadpool.git
