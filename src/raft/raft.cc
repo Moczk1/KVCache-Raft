@@ -1,4 +1,5 @@
 #include "raft/raft.h"
+#include "ThreadPool.h"
 #include "common/ApplyMsg.h"
 #include "common/Constant.h"
 #include "common/LockQueue.h"
@@ -6,7 +7,6 @@
 #include "persist/Persister.h"
 #include "raft/RaftRpcUtil.h"
 #include "raftRPC.pb.h"
-#include "threadpool/ThreadPool.h"
 #include <algorithm>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -27,11 +27,11 @@
 #include <utility>
 #include <vector>
 
-#define __Method_switch__ 0
+#define __Method_switch__ 3
 #define __DIRECT_THREAD__ 0
 #define __THREAD_POOL__ 1
 #define __COROUTINE__ 2
-#define __ASYCN__ 3
+#define __ASYNC__ 3
 
 namespace mraft
 {
@@ -79,16 +79,18 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 	}
 
 #if __Method_switch__ == __THREAD_POOL__
-	m_threadPool = std::make_unique<moczkrin::ThreadPool>(20, 20, 300,
+	m_threadPool = std::make_unique<moczkrin::ThreadPool>(5, 20, 300,
 	    moczkrin::ThreadPool::millisecond,
 	    moczkrin::ThreadPool::LinkedBlockingQueue, INT_MAX - 1, "threadpool",
 	    moczkrin::ThreadPool::CallerRunsPolicy);
+	std::print("=============================\n");
 	m_threadPool->execute(0, &raft::leaderHeartBeatTricker, this);
+	std::print("=============================\n");
 	m_threadPool->execute(0, &raft::electionTimeOutTicker, this);
 	m_threadPool->execute(0, &raft::applierTicker, this);
 #endif
 
-#if __Method_switch__ == __COROUTINE__ || __Method_switch__ == __DIRECT_THREAD__
+#if __Method_switch__ != __THREAD_POOL__
 	m_ioManager = std::make_unique<moczkrin::IOManager>(5, false);
 	m_ioManager->scheduleLock(
 	    [this] -> void { this->leaderHeartBeatTricker(); });
@@ -96,12 +98,12 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 	    [this] -> void { this->electionTimeOutTicker(); });
 #endif
 
-// #if __Method_switch__ == __DIRECT_THREAD__
-// 	std::thread t(&raft::leaderHeartBeatTricker, this);
-// 	t.detach();
-// 	std::thread t2(&raft::electionTimeOutTicker, this);
-// 	t2.detach();
-// #endif
+	// #if __Method_switch__ == __DIRECT_THREAD__
+	// 	std::thread t(&raft::leaderHeartBeatTricker, this);
+	// 	t.detach();
+	// 	std::thread t2(&raft::electionTimeOutTicker, this);
+	// 	t2.detach();
+	// #endif
 
 	// m_ioManager->scheduleLock([this] -> void { this->applierTicker(); });
 	std::thread t3(&raft::applierTicker, this);
@@ -257,7 +259,7 @@ void raft::doElection()
 			//     { handleRequestVoteResponse(i, args, reply, votedNum, ok);
 			//     });
 
-#if __Method_switch__ == __ASYCN__
+#if __Method_switch__ == __ASYNC__
 			m_ioManager->scheduleLock(
 			    [peer = m_peers[i], args,
 			        callback =
@@ -755,7 +757,7 @@ void raft::doHeartBeat()
 		    { this->sendAppendEntries(i, args, reply, appendNum); });
 #endif
 
-#if __Method_switch__ == __ASYCN__
+#if __Method_switch__ == __ASYNC__
 		m_ioManager->scheduleLock(
 		    [peer = m_peers[i], args,
 		        callback =
@@ -881,10 +883,13 @@ void raft::handleAppendEntries(int server,
 						    __FUNCTION__, __LINE__, m_commitIndex,
 						    args->prevlogindex() + args->entries_size());
 					}
+					// const int oldCommit = m_commitIndex;
 					// 更新 commit index
 					m_commitIndex = std::max({m_commitIndex,
 					    args->prevlogindex() + args->entries_size()});
+					// if (oldCommit != m_commitIndex)
 				}
+				m_applyCv.notify_one();
 			}
 
 			// 保证系统运行的正确性：无论何时 commitindex <=
@@ -1188,8 +1193,11 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		/** 下面判断 commit 参数 */
 		if (request->leadercommit() > m_commitIndex)
 		{
+			const int oldCommit = m_commitIndex;
 			m_commitIndex =
 			    std::min({request->leadercommit(), lastLogIndexandTerm[0]});
+			if (oldCommit != m_commitIndex)
+				m_applyCv.notify_one();
 		}
 
 		assert(lastLogIndexandTerm[0] >= m_commitIndex);
@@ -1215,6 +1223,11 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		// `but` request->logterm() != term
 
 		response->set_updatenextindex(m_lastSnapshotIndex + 1);
+		const int prevLogTerm =
+		    request->prevlogindex() == m_lastSnapshotIndex
+		        ? m_lastSnapshotTerm
+		        : m_logs[request->prevlogindex() - m_lastSnapshotIndex - 1]
+		              .logterm();
 
 		for (int index = request->prevlogindex(); index >= m_lastSnapshotIndex;
 		    index--)
@@ -1232,9 +1245,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 				term = m_logs[i].logterm();
 			}
 
-			if (term !=
-			    m_logs[request->prevlogindex() - m_lastSnapshotIndex - 1]
-			        .logterm())
+			if (term != prevLogTerm)
 			{
 				response->set_updatenextindex(index + 1);
 				break;
@@ -1335,6 +1346,7 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 	if (args->lastsnapshotincludeindex() <= m_lastSnapshotIndex)
 	{ // leader 的snapshot index 小于自己的snapshot
 	  // 的index 是否需要返回正常的 reply 消息？
+		reply->set_term(m_currentTerm);
 		return;
 	}
 
@@ -1352,8 +1364,13 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 		m_logs.clear();
 	}
 
+	const int oldCommit = m_commitIndex;
 	m_commitIndex = std::max(m_commitIndex, args->lastsnapshotincludeindex());
+	if (oldCommit != m_commitIndex)
+		m_applyCv.notify_one();
+
 	m_lastApplied = std::max(m_lastApplied, args->lastsnapshotincludeindex());
+
 	m_lastSnapshotIndex = args->lastsnapshotincludeindex();
 	m_lastSnapshotTerm = args->lastsnapshotincludeterm();
 
@@ -1377,7 +1394,7 @@ void raft::Snapshot(int index, std::string snapshot)
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
 
-	if (m_lastSnapshotIndex > index || index > m_commitIndex)
+	if (m_lastSnapshotIndex >= index || index > m_commitIndex)
 	{
 		if (DEBUG)
 		{
@@ -1404,8 +1421,12 @@ void raft::Snapshot(int index, std::string snapshot)
 	m_lastSnapshotTerm = newLastSnapShotTerm;
 
 	m_logs = trunckedLogs;
+	const int oldCommit = m_commitIndex;
 	m_commitIndex = std::max(m_commitIndex, index);
 	m_lastApplied = std::max(m_lastApplied, index);
+
+	if (oldCommit != m_commitIndex)
+		m_applyCv.notify_one();
 
 	m_persister->Save(persistData(), snapshot);
 
@@ -1452,37 +1473,74 @@ std::string raft::persistData()
 
 void raft::applierTicker()
 {
-	while (true)
+	// while (true)
+	// {
+	// 	std::unique_lock<std::mutex> lock(m_mtx);
+	// 	if (m_state == leader)
+	// 	{
+	// 		if (this->Log)
+	// 			std::print("{}:{}raft{} m_lastApplied{} m_commitIndex{}\n",
+	// 			    GetTime(), __func__, m_id, m_lastApplied, m_commitIndex);
+	// 	}
+
+	// 	auto applyMsgs = getApplyLogs();
+
+	// 	lock.unlock();
+
+	// 	if (!applyMsgs.empty())
+	// 	{
+	// 		if (this->Log)
+	// 		{
+	// 			// [func- Raft::applierTicker()-raft{%d}]
+	// 			// 向kvserver報告的applyMsgs長度爲：{%d}", m_me,
+	// 			// applyMsgs.size()
+	// 			std::print("{}:{}raft{} 向kvserver報告的applyMsgs長度爲:{}\n",
+	// 			    GetTime(), __func__, m_id, applyMsgs.size());
+	// 		}
+	// 	}
+	// 	for (const auto &msg : applyMsgs)
+	// 	{
+	// 		applyChan->Push(msg);
+	// 	}
+	// 	std::this_thread::sleep_for(std::chrono::milliseconds(ApplyInterval));
+	// }
+
+	// 使用 cv 的事件通知的形式避免轮询
+	while (1)
 	{
 		std::unique_lock<std::mutex> lock(m_mtx);
-		if (m_state == leader)
-		{
-			if (this->Log)
-				std::print("{}:{}raft{} m_lastApplied{} m_commitIndex{}\n",
-				    GetTime(), __func__, m_id, m_lastApplied, m_commitIndex);
-		}
 
-		auto applyMsgs = getApplyLogs();
+		m_applyCv.wait(lock,
+		    // [this] { return m_stopped || m_lastApplied < m_commitIndex; });
+		    [this] { return m_lastApplied < m_commitIndex; });
 
+		int applyUntil = m_commitIndex;
+
+		// 锁内复制需要 apply 的日志，并在释放锁前推进 m_lastApplied。
+		auto logs = copyLogs(m_lastApplied + 1, applyUntil);
+		m_lastApplied = applyUntil;
 		lock.unlock();
 
-		if (!applyMsgs.empty())
+		for (const auto &log : logs)
 		{
-			if (this->Log)
-			{
-				// [func- Raft::applierTicker()-raft{%d}]
-				// 向kvserver報告的applyMsgs長度爲：{%d}", m_me,
-				// applyMsgs.size()
-				std::print("{}:{}raft{} 向kvserver報告的applyMsgs長度爲:{}\n",
-				    GetTime(), __func__, m_id, applyMsgs.size());
-			}
+			applyChan->Push(log);
 		}
-		for (const auto &msg : applyMsgs)
-		{
-			applyChan->Push(msg);
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(ApplyInterval));
 	}
+}
+std::vector<ApplyMsg> raft::copyLogs(int start, int end)
+{
+	std::vector<ApplyMsg> ret;
+	while (start <= end)
+	{
+		ApplyMsg msg;
+		msg.CommandValid = true;
+		msg.SnapshotValid = false;
+		msg.Command = m_logs[start - m_lastSnapshotIndex - 1].command();
+		msg.CommandIndex = start;
+		ret.emplace_back(msg);
+		start++;
+	}
+	return ret;
 }
 
 std::vector<ApplyMsg> raft::getApplyLogs()
@@ -1541,6 +1599,11 @@ void raft::Start(Op op, int &index, int &term, bool &isLeader)
 	index = logEntry.logindex();
 	term = logEntry.logterm();
 	isLeader = true;
+
+	lock.unlock();
+
+	// 受到消息后填写 m_logs 后立即执行心跳。
+	doHeartBeat();
 }
 
 int raft::GetRaftStateSize() { return m_persister->RaftStateSize(); }

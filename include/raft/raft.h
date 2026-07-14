@@ -10,12 +10,13 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/access.hpp>
 #include <chrono>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <vector>
 
 #include "ioscheduler.h"
-#include "threadpool/ThreadPool.h"
+#include "ThreadPool.h"
 
 using raftRpcProctoc::LogEntry;
 
@@ -29,6 +30,7 @@ class raft : public raftRpcProctoc::raftRpc
 	/* data */
 	mutable std::mutex m_mtx;
 	int m_id;
+	std::condition_variable m_applyCv;
 
 	std::vector<LogEntry> m_logs;
 	int m_lastLogIndex;
@@ -143,7 +145,9 @@ class raft : public raftRpcProctoc::raftRpc
 	int m_lastApplied; // 已经汇报给状态机（上层应用）的log 的index
 
 	void applierTicker();
+	std::vector<ApplyMsg> copyLogs(int start, int end);
 	std::vector<ApplyMsg> getApplyLogs();
+
 
   public:
 	void Start(Op op, int &index, int &term, bool &isLeader);

@@ -3,6 +3,7 @@
 #include "common/util.h"
 #include <fstream>
 #include <ios>
+#include <iterator>
 #include <mutex>
 #include <print>
 #include <string>
@@ -39,9 +40,8 @@ std::string Persister::ReadSnapshot()
 		return "";
 	}
 
-	std::string snapshot;
-
-	ifs >> snapshot;
+	std::string snapshot{std::istreambuf_iterator<char>(ifs),
+	    std::istreambuf_iterator<char>()};
 
 	ifs.close();
 
@@ -73,8 +73,8 @@ std::string Persister::ReadRaftState()
 		return "";
 	}
 
-	std::string snapshot;
-	ifs >> snapshot;
+	std::string snapshot{std::istreambuf_iterator<char>(ifs),
+	    std::istreambuf_iterator<char>()};
 
 	ifs.close();
 
@@ -84,8 +84,8 @@ std::string Persister::ReadRaftState()
 
 Persister::Persister(int me, Option opts) : m_raftStateSize(0)
 {
-	m_raftStateFileName = opts.m_raftFileName;
-	m_snapshotFileName = opts.m_snapshotFileName;
+	m_raftStateFileName = opts.m_raftFileName + "." + std::to_string(me);
+	m_snapshotFileName = opts.m_snapshotFileName + "." + std::to_string(me);
 
 	bool fileOpenFlag = true;
 

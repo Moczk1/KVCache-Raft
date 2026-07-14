@@ -390,7 +390,7 @@ void KvServer::ReadSnapShotToInstall(std::string snapshot)
 bool KvServer::SendMessageToWaitChan(const Op &op, int raftIndex)
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
-	if (DEBUG)
+	if (false)
 	{
 		std::string info = std::format("{}:[RaftApplyMessageSendToWaitChan--> "
 		                               "raftserver{}] , Send Command "
@@ -408,7 +408,7 @@ bool KvServer::SendMessageToWaitChan(const Op &op, int raftIndex)
 
 	waitApplyCh[raftIndex]->Push(op);
 
-	if (DEBUG)
+	if (false)
 	{
 		std::string info = std::format(
 		    "{}:[RaftApplyMessageSendToWaitChan--> raftserver{}] , Send "

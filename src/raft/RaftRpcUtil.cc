@@ -91,7 +91,7 @@ bool RaftRpcUtil::RequestVoteAsync(
 bool RaftRpcUtil::AppendEntries(raftRpcProctoc::AppendEntriesArgs *args,
     raftRpcProctoc::AppendEntriesReply *response)
 {
-	std::unique_lock<std::mutex> lock(m_stubMtx);
+	// std::unique_lock<std::mutex> lock(m_stubMtx);
 	MrpcController controller;
 	m_stub->AppendEntries(&controller, args, response, nullptr);
 	return !controller.Failed();
@@ -99,7 +99,7 @@ bool RaftRpcUtil::AppendEntries(raftRpcProctoc::AppendEntriesArgs *args,
 bool RaftRpcUtil::InstallSnapshot(raftRpcProctoc::InstallSnapshotRequest *args,
     raftRpcProctoc::InstallSnapshotResponse *response)
 {
-	std::unique_lock<std::mutex> lock(m_stubMtx);
+	// std::unique_lock<std::mutex> lock(m_stubMtx);
 	MrpcController controller;
 	m_stub->InstallSnapshot(&controller, args, response, nullptr);
 	return !controller.Failed();
@@ -107,7 +107,7 @@ bool RaftRpcUtil::InstallSnapshot(raftRpcProctoc::InstallSnapshotRequest *args,
 bool RaftRpcUtil::RequestVote(raftRpcProctoc::RequestVoteArgs *args,
     raftRpcProctoc::RequestVoteReply *response)
 {
-	std::unique_lock<std::mutex> lock(m_stubMtx);
+	// std::unique_lock<std::mutex> lock(m_stubMtx);
 	MrpcController controller;
 	m_stub->RequestVote(&controller, args, response, nullptr);
 	return !controller.Failed();

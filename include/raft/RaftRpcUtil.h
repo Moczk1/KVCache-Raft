@@ -11,7 +11,7 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 {
   private:
 	std::shared_ptr<raftRpcProctoc::raftRpc_Stub> m_stub;
-	std::mutex m_stubMtx;
+	// std::mutex m_stubMtx;
 
 	std::string m_ip;
 	short m_port;
