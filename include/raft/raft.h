@@ -6,17 +6,19 @@
 #include "common/util.h"
 #include "persist/Persister.h"
 #include "raftRPC.pb.h"
+#include <atomic>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/access.hpp>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>
 
-#include "ioscheduler.h"
 #include "ThreadPool.h"
+#include "ioscheduler.h"
 
 using raftRpcProctoc::LogEntry;
 
@@ -48,7 +50,7 @@ class raft : public raftRpcProctoc::raftRpc
 		leader,
 		candidate
 	};
-	Identity m_state;
+	std::atomic<Identity> m_state;
 
 	enum Vote
 	{
@@ -66,7 +68,7 @@ class raft : public raftRpcProctoc::raftRpc
 	TimePoint m_lastElectionTime;
 	TimePoint m_lastHearBeatTime;
 
-	std::unique_ptr<moczkrin::ThreadPool>  m_threadPool;
+	std::unique_ptr<moczkrin::ThreadPool> m_threadPool;
 
   private:
 	inline TimePoint now() { return std::chrono::system_clock::now(); }
@@ -91,6 +93,8 @@ class raft : public raftRpcProctoc::raftRpc
 	    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
 	    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
 	    std::shared_ptr<int> votedNum, bool ok);
+
+	void advanceCommitIndex();
 
 	void doHeartBeat();
 	void leaderHeartBeatTricker();
@@ -147,7 +151,6 @@ class raft : public raftRpcProctoc::raftRpc
 	void applierTicker();
 	std::vector<ApplyMsg> copyLogs(int start, int end);
 	std::vector<ApplyMsg> getApplyLogs();
-
 
   public:
 	void Start(Op op, int &index, int &term, bool &isLeader);

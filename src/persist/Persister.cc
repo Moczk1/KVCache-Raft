@@ -31,7 +31,10 @@ std::string Persister::ReadSnapshot()
 	}
 
 	DeferClass defer(
-	    [this] { this->m_snapshotOutStream.open(m_snapshotFileName); });
+	    [this] {
+		    this->m_snapshotOutStream.open(
+		        m_snapshotFileName, std::ios::out | std::ios::app);
+	    });
 
 	std::fstream ifs(m_snapshotFileName, std::ios_base::in);
 
@@ -66,6 +69,10 @@ long long Persister::RaftStateSize() const
 std::string Persister::ReadRaftState()
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
+	if (m_raftStateOutStream.is_open())
+	{
+		m_raftStateOutStream.flush();
+	}
 
 	std::fstream ifs(m_raftStateFileName, std::ios::in);
 	if (!ifs.good())
@@ -87,33 +94,18 @@ Persister::Persister(int me, Option opts) : m_raftStateSize(0)
 	m_raftStateFileName = opts.m_raftFileName + "." + std::to_string(me);
 	m_snapshotFileName = opts.m_snapshotFileName + "." + std::to_string(me);
 
-	bool fileOpenFlag = true;
+	// app 会在文件不存在时创建文件，但不会清空已有的持久化数据。
+	// 只有 Save/SaveRaftState 明确覆盖状态时才应使用 trunc。
+	m_raftStateOutStream.open(
+	    m_raftStateFileName, std::ios::out | std::ios::app);
+	m_snapshotOutStream.open(
+	    m_snapshotFileName, std::ios::out | std::ios::app);
 
-	std::fstream file(m_raftStateFileName, std::ios::out | std::ios::trunc);
-
-	if (file.is_open())
-	{
-		file.close();
-	}
-	else
-	{
-		fileOpenFlag = false;
-	}
-
-	file = std::fstream(m_snapshotFileName, std::ios::out | std::ios::trunc);
-	if (file.is_open())
-		file.close();
-	else
-		fileOpenFlag = false;
-
-	if (!fileOpenFlag)
+	if (!m_raftStateOutStream.is_open() || !m_snapshotOutStream.is_open())
 	{
 		std::print(
 		    "{}{}:\t\tPersister file open error!\n", __FUNCTION__, __LINE__);
 	}
-
-	m_raftStateOutStream.open(m_raftStateFileName);
-	m_snapshotOutStream.open(m_snapshotFileName);
 }
 
 Persister::~Persister()
