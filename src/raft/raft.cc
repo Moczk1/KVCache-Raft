@@ -122,61 +122,94 @@ void raft::electionTimeOutTicker()
 			std::this_thread::sleep_for(
 			    std::chrono::milliseconds(HEARTBEATTIMEOUT));
 		}
+		// std::chrono::duration<signed long int, std::milli>
+		// suitableSleepTime{}; std::chrono::system_clock::time_point
+		// wakeTime{};
+
+		/**
+
+		        // 上锁防止调度. 计算时间
+		        {
+		            std::unique_lock<std::mutex> lock(m_mtx);
+		            wakeTime = now();
+		            suitableSleepTime = []()
+		                -> auto
+		            {
+		                std::random_device rd;
+		                std::mt19937 rng(rd());
+		                std::uniform_int_distribution<int> dist(
+		                    MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
+		                return std::chrono::milliseconds(dist(rng));
+		            }() +
+		                       std::chrono::duration_cast<std::chrono::milliseconds>(
+		                           m_lastElectionTime - wakeTime);
+		        } // 解锁
+
+		        // 判断距离下次 election 的时间长度； 大于1个单位则
+		        // sleep，否则继续执行
+		        if (std::chrono::duration<double, std::milli>(suitableSleepTime)
+		                .count() > 1)
+		        {
+		            auto start = std::chrono::steady_clock::now();
+		            std::this_thread::sleep_for(
+		                std::chrono::milliseconds(suitableSleepTime));
+
+		            auto end = std::chrono::steady_clock::now();
+
+		            auto duration =
+		                std::chrono::duration_cast<std::chrono::milliseconds>(
+		                    end - start);
+		            // 使用ANSI控制序列将输出颜色修改为紫色
+
+		            if (this->Debug)
+		            {
+		                std::cout
+		                    << "\033[1;35m
+		   electionTimeOutTicker();函数设置睡眠时间为: "
+		                    <<
+		   std::chrono::duration_cast<std::chrono::milliseconds>(
+		                           suitableSleepTime)
+		                           .count()
+		                    << " 毫秒\033[0m" << std::endl;
+		                std::cout
+		                    << "\033[1;35m
+		   electionTimeOutTicker();函数实际睡眠时间为: "
+		                    << duration.count() << " 毫秒\033[0m" << std::endl;
+		            }
+		        }
+
+		        if (std::chrono::duration_cast<std::chrono::milliseconds>(
+		                m_lastElectionTime - wakeTime)
+		                .count() > 0)
+		        {
+		            continue;
+		        }
+		        doElection();
+
+
+		*/
+
+		std::chrono::system_clock::time_point wakeTime = now();
 		std::chrono::duration<signed long int, std::milli> suitableSleepTime{};
-		std::chrono::system_clock::time_point wakeTime{};
-
-		// 上锁防止调度. 计算时间
+		suitableSleepTime = []() -> auto
 		{
-			std::unique_lock<std::mutex> lock(m_mtx);
-			wakeTime = now();
-			suitableSleepTime = []()
-			    -> auto
-			{
-				std::random_device rd;
-				std::mt19937 rng(rd());
-				std::uniform_int_distribution<int> dist(
-				    MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
-				return std::chrono::milliseconds(dist(rng));
-			}() +
-			           std::chrono::duration_cast<std::chrono::milliseconds>(
-			               m_lastElectionTime - wakeTime);
-		} // 解锁
+			std::random_device rd;
+			std::mt19937 rng(rd());
+			std::uniform_int_distribution<int> dist(
+			    MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
+			return std::chrono::milliseconds(dist(rng));
+		}();
 
-		// 判断距离下次 election 的时间长度； 大于1个单位则 sleep，否则继续执行
-		if (std::chrono::duration<double, std::milli>(suitableSleepTime)
-		        .count() > 1)
+		std::unique_lock<std::mutex> lock(m_mtx);
+
+		bool isreset = m_cv_lastElection.wait_for(lock, suitableSleepTime,
+		    [&] { return m_lastElectionTime > wakeTime; });
+
+		if (!isreset)
 		{
-			auto start = std::chrono::steady_clock::now();
-			std::this_thread::sleep_for(
-			    std::chrono::milliseconds(suitableSleepTime));
-			auto end = std::chrono::steady_clock::now();
-
-			auto duration =
-			    std::chrono::duration_cast<std::chrono::milliseconds>(
-			        end - start);
-			// 使用ANSI控制序列将输出颜色修改为紫色
-
-			if (this->Debug)
-			{
-				std::cout
-				    << "\033[1;35m electionTimeOutTicker();函数设置睡眠时间为: "
-				    << std::chrono::duration_cast<std::chrono::milliseconds>(
-				           suitableSleepTime)
-				           .count()
-				    << " 毫秒\033[0m" << std::endl;
-				std::cout
-				    << "\033[1;35m electionTimeOutTicker();函数实际睡眠时间为: "
-				    << duration.count() << " 毫秒\033[0m" << std::endl;
-			}
+			lock.unlock();
+			doElection();
 		}
-
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(
-		        m_lastElectionTime - wakeTime)
-		        .count() > 0)
-		{
-			continue;
-		}
-		doElection();
 	}
 }
 
@@ -210,6 +243,7 @@ void raft::doElection()
 
 		// 重置 election 时间戳
 		m_lastElectionTime = now();
+		m_cv_lastElection.notify_one();
 
 		// 给所有的 peer 发送选举 rpc
 		std::vector<
@@ -254,12 +288,6 @@ void raft::doElection()
 			m_ioManager->scheduleLock([this, i, args, reply, votedNum]()
 			    { this->sendRequestVote(i, args, reply, votedNum); });
 #endif
-
-			// m_peers[i]->RequestVoteAsync(args,
-			//     [this, i, args, votedNum](bool ok,
-			//         std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply)
-			//     { handleRequestVoteResponse(i, args, reply, votedNum, ok);
-			//     });
 
 #if __Method_switch__ == __ASYNC__
 			m_ioManager->scheduleLock(
@@ -550,6 +578,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 	{ // 确实为第一次
 		m_voteForId = request->candidateid();
 		m_lastElectionTime = now(); // 重置自己的选举时间
+		m_cv_lastElection.notify_one();
 		response->set_term(m_currentTerm);
 		response->set_votestate(normal);
 		response->set_votegranted(true);
@@ -582,51 +611,70 @@ void raft::leaderHeartBeatTricker()
 		    suitableSleepTime{};
 		std::chrono::system_clock::time_point wakeTime{};
 
+		/**
+
+		// {
+		// 	std::unique_lock<std::mutex> lock(m_mtx);
+		// 	wakeTime = now();
+		// 	suitableSleepTime =
+		// 	    std::chrono::milliseconds(HEARTBEATTIMEOUT) +
+		// 	    std::chrono::duration_cast<std::chrono::milliseconds>(
+		// 	        m_lastHearBeatTime - wakeTime);
+		// }
+
+		// if (std::chrono::duration_cast<std::chrono::milliseconds>(
+		//         suitableSleepTime)
+		//         .count() > 1)
+		// {
+		// 	// 获取当前时间点
+		// 	auto start = std::chrono::steady_clock::now();
+		// 	std::this_thread::sleep_for(
+		// 	    std::chrono::duration<unsigned long int, std::milli>(
+		// 	        suitableSleepTime));
+		// 	auto end = std::chrono::steady_clock::now();
+
+		// 	std::chrono::duration<double, std::milli> duration = end - start;
+
+		// 	if (this->Debug)
+		// 	{
+		// 		std::cout
+		// 		    << atomicCount
+		// 		    << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
+		// 		    << std::chrono::duration_cast<std::chrono::milliseconds>(
+		// 		           suitableSleepTime)
+		// 		           .count()
+		// 		    << " 毫秒\033[0m" << std::endl;
+
+		// 		std::cout
+		// 		    << atomicCount
+		// 		    << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
+		// 		    << duration.count() << std::endl;
+		// 	}
+		// 	atomicCount++;
+		// }
+
+		// if (std::chrono::duration_cast<std::chrono::milliseconds>(
+		//         m_lastHearBeatTime - wakeTime)
+		//         .count() > 1)
+		// 	continue;
+		// doHeartBeat();
+
+		*/
+
+		std::unique_lock<std::mutex> lock(m_mtx);
+
+		suitableSleepTime = std::chrono::milliseconds(HEARTBEATTIMEOUT);
+
+		// 目前暂时没有在 m_state 状态变化的地方实现调用 notify.
+		bool notleading = m_cv_heartbeat.wait_for(
+		    lock, suitableSleepTime, [&] { return m_state.load() != leader; });
+
+		if (!notleading)
 		{
-			std::unique_lock<std::mutex> lock(m_mtx);
-			wakeTime = now();
-			suitableSleepTime =
-			    std::chrono::milliseconds(HEARTBEATTIMEOUT) +
-			    std::chrono::duration_cast<std::chrono::milliseconds>(
-			        m_lastHearBeatTime - wakeTime);
+			lock.unlock();
+			doHeartBeat();
 		}
-
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(
-		        suitableSleepTime)
-		        .count() > 1)
-		{
-			// 获取当前时间点
-			auto start = std::chrono::steady_clock::now();
-			std::this_thread::sleep_for(
-			    std::chrono::duration<unsigned long int, std::milli>(
-			        suitableSleepTime));
-			auto end = std::chrono::steady_clock::now();
-
-			std::chrono::duration<double, std::milli> duration = end - start;
-
-			if (this->Debug)
-			{
-				std::cout
-				    << atomicCount
-				    << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
-				    << std::chrono::duration_cast<std::chrono::milliseconds>(
-				           suitableSleepTime)
-				           .count()
-				    << " 毫秒\033[0m" << std::endl;
-
-				std::cout
-				    << atomicCount
-				    << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
-				    << duration.count() << std::endl;
-			}
-			atomicCount++;
-		}
-
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(
-		        m_lastHearBeatTime - wakeTime)
-		        .count() > 1)
-			continue;
-		doHeartBeat();
+		atomicCount.fetch_add(1, std::memory_order_relaxed);
 	}
 }
 
@@ -1117,6 +1165,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 	m_state.store(follower, std::memory_order::release);
 	// 接收到有效的 AE 重置选举超时计时器
 	m_lastElectionTime = now();
+	m_cv_lastElection.notify_one();
 
 	// 因为 rpc 请求可能在网络中阻塞；被接收的时候server 已经过去很久了
 	// 比较日志的新旧程度
@@ -1221,17 +1270,23 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		} // for
 
 		// 删除后续的日志
-		int req_last_log_index =
-		    request->entries(request->entries_size() - 1).logindex();
-		if (req_last_log_index < getLastLogIndex())
 		{
-			for (int i = getLastLogIndex(); i >= req_last_log_index + 1; i--)
+			int req_last_log_index = 0;
+			if (request->entries_size() != 0)
 			{
-				int offset = i - m_lastSnapshotIndex - 1;
-				m_logs.erase(m_logs.begin() + offset);
+				req_last_log_index =
+				    request->entries(request->entries_size() - 1).logindex();
+				if (req_last_log_index < getLastLogIndex())
+				{
+					for (int i = getLastLogIndex(); i >= req_last_log_index + 1;
+					    i--)
+					{
+						int offset = i - m_lastSnapshotIndex - 1;
+						m_logs.erase(m_logs.begin() + offset);
+					}
+				}
 			}
 		}
-
 		getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
 
 		// 保证逻辑正确性
@@ -1355,6 +1410,8 @@ void raft::leaderSendSnapShot(int i)
 		DeferClass defer([this] { persist(); });
 
 		m_lastElectionTime = now();
+		m_cv_lastElection.notify_one();
+
 		return;
 	}
 
@@ -1390,6 +1447,7 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 
 	m_state.store(follower);
 	m_lastElectionTime = now();
+	m_cv_lastElection.notify_one();
 
 	if (args->lastsnapshotincludeindex() <= m_lastSnapshotIndex)
 	{ // leader 的snapshot index 小于自己的snapshot

@@ -43,7 +43,7 @@ void worker(int threadId, int count, ThreadStat &stat)
 
 int main()
 {
-	constexpr int threadNum = 4;
+	constexpr int threadNum = 1;
 	constexpr int countPerThread = 5000;
 
 	std::vector<std::jthread> threads;

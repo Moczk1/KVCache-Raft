@@ -66,7 +66,10 @@ class raft : public raftRpcProctoc::raftRpc
 	std::vector<std::shared_ptr<RaftRpcUtil>> m_peers;
 
 	TimePoint m_lastElectionTime;
+	std::condition_variable m_cv_lastElection;
+
 	TimePoint m_lastHearBeatTime;
+	std::condition_variable m_cv_heartbeat;
 
 	std::unique_ptr<moczkrin::ThreadPool> m_threadPool;
 
