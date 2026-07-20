@@ -1,10 +1,14 @@
 #include "raft/RaftRpcUtil.h"
-#include "ioscheduler.h"
 #include "raftRPC.pb.h"
-#include "rpc/mrpcchannel.h"
+#include "rpc/MrpcchannelMultiReq.h"
 #include "rpc/mrpccontroller.h"
+#include <cstddef>
+#include <google/protobuf/message.h>
+#include <google/protobuf/service.h>
 #include <memory>
-#include <thread>
+#include <print>
+#include <sys/types.h>
+#include <utility>
 
 namespace mraft
 {
@@ -22,8 +26,31 @@ bool RaftRpcUtil::AppendEntriesAsync(
 		}
 		return false;
 	}
+	/**
+	    auto channel = std::make_shared<MrpcAsyncChannel>(m_asyncChannel);
 
-	auto channel = std::make_shared<MrpcAsyncChannel>(m_asyncChannel);
+	    auto controller = std::make_shared<MrpcController>();
+
+	    auto reply = std::make_shared<raftRpcProctoc::AppendEntriesReply>();
+
+	    // 将业务 callback 包装成 protobuf Closure
+	    auto done = std::make_shared<FunctionClosure>(
+	        [controller, reply, cb = std::move(cb)]() mutable
+	        {
+	            const bool ok = !controller->Failed();
+
+	            if (cb)
+	            {
+	                cb(ok, reply);
+	            }
+	        });
+
+	    channel->saveCallee(controller, args, reply, done);
+
+	    raftRpcProctoc::raftRpc_Stub stub(channel.get());
+
+	    stub.AppendEntries(controller.get(), args.get(), reply.get(), nullptr);
+	 */
 
 	auto controller = std::make_shared<MrpcController>();
 
@@ -41,12 +68,10 @@ bool RaftRpcUtil::AppendEntriesAsync(
 		    }
 	    });
 
-	channel->saveCallee(controller, args, reply, done);
-
-	raftRpcProctoc::raftRpc_Stub stub(channel.get());
-
-	stub.AppendEntries(controller.get(), args.get(), reply.get(), nullptr);
-
+	m_stub->AppendEntries(
+	    controller.get(), args.get(), reply.get(), done.get());
+	std::print("{}::m_stub->AppendEntries(controller.get(), args.get(), reply.get(), done.get());\n",__LINE__);
+	std::print("controller->Failed():{}\n", controller->Failed());
 	// 这里只表示 RPC 是否成功投递
 	return !controller->Failed();
 }
@@ -60,29 +85,27 @@ bool RaftRpcUtil::RequestVoteAsync(
 		return false;
 	}
 
-	auto channel = std::make_shared<MrpcAsyncChannel>(m_asyncChannel);
-
 	auto controller = std::make_shared<MrpcController>();
+	// MrpcchannelMultiReq 用
 	auto reply = std::make_shared<raftRpcProctoc::RequestVoteReply>();
-
-	auto done = std::make_shared<FunctionClosure>(
-	    [controller, reply, callback = std::move(cb)]() mutable
+	auto lifetime = std::make_shared<MrpcchannelMultiReq::RpcCallLifetime>();
+	lifetime->controller = controller;
+	lifetime->done = std::make_shared<FunctionClosure>(
+	    [callback = std::move(cb), controller, reply]()
 	    {
 		    bool ok = !controller->Failed();
-
-		    if (callback)
-		    {
-			    callback(ok, reply);
-		    }
+		    callback(ok, reply);
 	    });
+	lifetime->request = args;
+	lifetime->response = reply;
 
-	channel->saveCallee(controller, args, reply, done);
+	m_channel_MR->registerCall(controller.get(), lifetime);
 
-	// Stub 只用于触发这一次 CallMethod，之后可以销毁。
-	raftRpcProctoc::raftRpc_Stub stub(channel.get());
+	m_stub->RequestVote(
+	    controller.get(), args.get(), reply.get(), lifetime->done.get());
 
-	stub.RequestVote(controller.get(), args.get(), reply.get(), nullptr);
-
+	std::print("{}::m_stub->RequestVote(controller.get(), args.get(),reply.get(), done.get());\n",__LINE__);
+	std::print("controller->Failed():{}\n", controller->Failed());
 	// 表示是否成功投递，不代表远端 RPC 已经成功。
 	return !controller->Failed();
 }
@@ -115,16 +138,19 @@ bool RaftRpcUtil::RequestVote(raftRpcProctoc::RequestVoteArgs *args,
 
 RaftRpcUtil::RaftRpcUtil(std::string ip, short port) : m_port(port), m_ip(ip)
 {
-	//   m_stub = new raftRpcProctoc::raftRpc_Stub(new Mrpcchannel(ip, port,
-	//   true));
+	// m_stub = std::make_shared<MrpcchannelMultiReq>(
+	//     new raftRpcProctoc::raftRpc_Stub(new Mrpcchannel(ip, port, true)));
 
-	Mrpcchannel *channel = new Mrpcchannel(ip, port, true);
-	m_stub = std::make_shared<raftRpcProctoc::raftRpc_Stub>(channel
-	    // new Mrpcchannel(ip, port, true)
-	    // new MrpcAsyncChannel(ip, port, 3)
-	);
+	// Mrpcchannel *channel = new Mrpcchannel(ip, port, true);
+	// m_stub = std::make_shared<raftRpcProctoc::raftRpc_Stub>(channel
+	//     // new Mrpcchannel(ip, port, true)
+	//     // new MrpcAsyncChannel(ip, port, 3)
+	// );
 
-	m_asyncChannel = std::make_shared<Mrpcchannel>(m_ip, m_port, false, 3);
+	// m_asyncChannel = std::make_shared<Mrpcchannel>(m_ip, m_port, false, 3);
+
+	m_channel_MR = std::make_shared<MrpcchannelMultiReq>(m_ip, m_port, true, 3);
+	m_stub = std::make_shared<raftRpcProctoc::raftRpc_Stub>(m_channel_MR.get());
 }
 // RaftRpcUtil::~RaftRpcUtil() { delete m_stub; }
 } // namespace mraft

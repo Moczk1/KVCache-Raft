@@ -115,6 +115,10 @@ void raft::electionTimeOutTicker()
 {
 	while (true)
 	{
+
+		std::print("[raft]:rf id:{} state:{}\n", m_id,
+		    static_cast<int>(m_state.load(std::memory_order_acquire)));
+
 		// while (m_state == leader)
 		while (m_state.load() == leader)
 		{
@@ -318,7 +322,7 @@ void raft::handleRequestVoteResponse(int peer,
 	std::unique_lock<std::mutex> lock(m_mtx);
 
 	/**
-	 * 根据 term 的情况有三种变化
+	 * 根据 term 的情况有三种变化 1,2,3
 	 */
 	// 1.
 	if (reply->term() > m_currentTerm) // 没有成功进入 leader 状态
@@ -359,6 +363,8 @@ void raft::handleRequestVoteResponse(int peer,
 	if (*votedNum >=
 	    m_peers.size() / 2 + 1) // 如果满足过半数同意->成功晋升leader
 	{
+		votedNum = 0; // 幂等性？
+
 		if (m_state.load() == leader)
 		{
 			if (this->Debug)
@@ -367,7 +373,7 @@ void raft::handleRequestVoteResponse(int peer,
 				    __FUNCTION__, __LINE__, m_id, m_currentTerm);
 		}
 
-		m_state.store(leader);
+		m_state.store(leader, std::memory_order_release);
 
 		if (this->Debug)
 			std::print("[raft]sendRequestVote rf{}] elect "
@@ -681,6 +687,7 @@ void raft::leaderHeartBeatTricker()
 void raft::doHeartBeat()
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
+	std::print("[raft] rf id:{} state:{}\n", m_id, static_cast<int>(m_state.load(std::memory_order_acquire)));
 	if (m_state.load() != leader) // 非 leader 环境下直接退出此线程
 		return;
 

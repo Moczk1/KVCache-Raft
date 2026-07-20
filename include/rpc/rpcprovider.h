@@ -20,6 +20,7 @@ class RpcProvider
   private:
 	struct RpcCallContext
 	{
+		uint64_t requestId;
 		std::shared_ptr<google::protobuf::Message> request;
 		std::shared_ptr<google::protobuf::Message> response;
 	};

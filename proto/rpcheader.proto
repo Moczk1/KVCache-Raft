@@ -8,3 +8,23 @@ message RpcHeader
     bytes method_name = 2;
     uint32 args_size = 3; //这里虽然是uint32，但是protobuf编码的时候默认就是变长编码，可见：https://www.cnblogs.com/yangwenhuan/p/10328960.html
 }
+
+
+// 为多在途 rpc 请求准备的新的 rpc req & rep 的消息标准。
+
+message RpcRequestFrame
+{
+    //  前添加变长总长度
+    uint64 request_id = 2;  
+    bytes service_name = 3;
+    bytes method_name = 4;
+    bytes payload = 5; 
+}
+
+
+
+message RpcResponseFrame
+{
+    uint64 request_id = 2;
+    bytes payload = 3;
+}

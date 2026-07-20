@@ -1,27 +1,21 @@
-#include <arpa/inet.h>
+#include "rpc/mrpcchannel.h"
+#include "common/util.h"
+#include "ioscheduler.h"
+#include "rpcheader.pb.h"
+#include "scheduler.h"
+#include <atomic>
 #include <cerrno>
+#include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <format>
-#include <functional>
-#include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <memory>
-#include <netinet/in.h>
+#include <mutex>
 #include <print>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <utility>
-
-#include "fiber.h"
-#include "ioscheduler.h"
-#include "rpc/mrpcchannel.h"
-#include "rpcheader.pb.h"
-#include "scheduler.h"
-#include "thread.h"
 
 namespace mraft
 {
@@ -349,22 +343,25 @@ void MrpcAsyncChannel::postCompletion()
 {
 	auto self = shared_from_this();
 	m_scheduler->scheduleLock(
-	    std::function<void()>(
-	        [self]()
-	        {
-		        // 固定回到发起调用的线程，语义与 TinyRPC 回原 Reactor 一致。
-		        if (self->m_done != nullptr)
-		        {
-			        self->m_done->Run();
-		        }
-		        self->m_finished.store(true, std::memory_order_release);
-		        if (self->m_waiting.load(std::memory_order_acquire))
-		        {
-			        self->m_scheduler->scheduleLock(
-			            self->m_callerFiber, self->m_callerThread);
-		        }
-	        }),
+	    // std::function<void()>(
+	    [self]()
+	    {
+		    // 固定回到发起调用的线程，语义与 TinyRPC 回原 Reactor 一致。
+		    if (self->m_done != nullptr)
+		    {
+			    self->m_done->Run();
+		    }
+		    self->m_finished.store(true, std::memory_order_release);
+		    if (self->m_waiting.load(std::memory_order_acquire))
+		    {
+			    self->m_scheduler->scheduleLock(
+			        self->m_callerFiber, self->m_callerThread);
+		    }
+	    }
+	    // )
+	    ,
 	    m_callerThread);
 }
+
 
 } // namespace mraft

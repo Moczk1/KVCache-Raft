@@ -118,58 +118,32 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 	google::protobuf::io::ArrayInputStream array_input(
 	    recv_buf.data(), recv_buf.size());
 	google::protobuf::io::CodedInputStream coded_input(&array_input);
-	// 读取变长存储的 rpc_header 的长度
+
 	uint32_t header_size{};
 	coded_input.ReadVarint32(&header_size);
 
-	// 根据header_size读取数据头的原始字符流，反序列化数据，得到rpc请求的详细信息
-	std::string rpc_header_str; // rpc header 接收空间
-	RPC::RpcHeader rpcHeader;
-	std::string service_name;
-	std::string method_name;
-	uint32_t args_size{};
+	std::string rpc_req_frame_str{};
+	coded_input.ReadString(&rpc_req_frame_str, header_size);
 
-	// 设置读取大小限制
-	google::protobuf::io::CodedInputStream::Limit msg_limit =
-	    coded_input.PushLimit(header_size);
-	// 读取 rpc header 的长度
-	coded_input.ReadString(&rpc_header_str, header_size);
+	RPC::RpcRequestFrame recv_msg_fmt;
+	std::string method_name{};
+	std::string service_name{};
+	std::string args_str{};
+	uint64_t requestId = 0;
 
-	// 取消读取大小限制
-	coded_input.PopLimit(msg_limit);
-
-	if (rpcHeader.ParseFromString(rpc_header_str))
+	if (recv_msg_fmt.ParseFromString(rpc_req_frame_str))
 	{
-		// 反序列化成功
-		service_name = rpcHeader.service_name();
-		method_name = rpcHeader.method_name();
-		args_size = rpcHeader.args_size();
+		requestId = recv_msg_fmt.request_id();
+		method_name = recv_msg_fmt.method_name();
+		service_name = recv_msg_fmt.service_name();
+		args_str = recv_msg_fmt.payload();
 	}
 	else
 	{
-		std::print("rpc_header_str:{} parse error!", rpc_header_str);
+		std::print("rpc_header_str:{} parse error!", rpc_req_frame_str);
 		return;
 	}
 
-	std::string args_str;
-	bool read_args_success = coded_input.ReadString(&args_str, args_size);
-
-	if (!read_args_success)
-	{
-		return;
-	}
-
-	// if (DEBUG)
-	// {
-	// 	std::print("================================================\n"
-	// 	           "rpc_header_str:{}\n "
-	// 	           "service_name:{}\n"
-	// 	           "method_name:{}\n"
-	// 	           "args_str:{}\n",
-	// 	    rpc_header_str, service_name, method_name, args_size);
-	// }
-
-	// 获取真实的 service 和 method 的描述符
 	auto it = m_serviceMap.find(service_name);
 	if (it == m_serviceMap.end()) // 没有找到
 	{
@@ -205,6 +179,107 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 	    service->GetResponsePrototype(method).New());
 	// 设置服务端执行完毕的回调函数
 	std::shared_ptr<RpcCallContext> ctx_p(
+	    new RpcCallContext{requestId, request, response});
+
+	google::protobuf::Closure *done = google::protobuf::NewCallback<RpcProvider,
+	    const ::muduo::net::TcpConnectionPtr &,
+	    std::shared_ptr<RpcCallContext>>(
+	    this, &RpcProvider::SendRpcResponse, conn, ctx_p);
+
+	/** 非 mrpcchannelmultireq 下开启
+	std::string recv_buf = buffer->retrieveAllAsString();
+
+	google::protobuf::io::ArrayInputStream array_input(
+	    recv_buf.data(), recv_buf.size());
+	google::protobuf::io::CodedInputStream coded_input(&array_input);
+	// 读取变长存储的 rpc_header 的长度
+	uint32_t header_size{};
+	coded_input.ReadVarint32(&header_size);
+
+	//
+	根据header_size读取数据头的原始字符流，反序列化数据，得到rpc请求的详细信息
+	std::string rpc_header_str; // rpc header 接收空间
+	RPC::RpcHeader rpcHeader;
+	std::string service_name;
+	std::string method_name;
+	uint32_t args_size{};
+
+	// 设置读取大小限制
+	google::protobuf::io::CodedInputStream::Limit msg_limit =
+	    coded_input.PushLimit(header_size);
+	// 读取 rpc header 的长度
+	coded_input.ReadString(&rpc_header_str, header_size);
+
+	// 取消读取大小限制
+	coded_input.PopLimit(msg_limit);
+
+	if (rpcHeader.ParseFromString(rpc_header_str))
+	{
+	    // 反序列化成功
+	    service_name = rpcHeader.service_name();
+	    method_name = rpcHeader.method_name();
+	    args_size = rpcHeader.args_size();
+	}
+	else
+	{
+	    std::print("rpc_header_str:{} parse error!", rpc_header_str);
+	    return;
+	}
+
+	std::string args_str;
+	bool read_args_success = coded_input.ReadString(&args_str, args_size);
+
+	if (!read_args_success)
+	{
+	    return;
+	}
+
+	// if (DEBUG)
+	// {
+	// 	std::print("================================================\n"
+	// 	           "rpc_header_str:{}\n "
+	// 	           "service_name:{}\n"
+	// 	           "method_name:{}\n"
+	// 	           "args_str:{}\n",
+	// 	    rpc_header_str, service_name, method_name, args_size);
+	// }
+
+	// 获取真实的 service 和 method 的描述符
+	auto it = m_serviceMap.find(service_name);
+	if (it == m_serviceMap.end()) // 没有找到
+	{
+	    std::print("服务service name:{}, is not exist!\n", service_name);
+	    std::print("当前服务列表为\n");
+	    for (const auto &[name, info] : m_serviceMap)
+	    {
+	        std::cout << name << std::endl;
+	    }
+	    return;
+	}
+	auto mit = it->second.m_methodMap.find(method_name);
+	if (mit == it->second.m_methodMap.end())
+	{
+	    std::cout << service_name << ":" << method_name << "is not exist"
+	              << std::endl;
+	    return;
+	}
+
+	auto service = it->second.m_service;
+	auto method = mit->second;
+
+	// 生成 rpc 方法调用的请求 request 和 响应 response
+	std::shared_ptr<google::protobuf::Message> request(
+	    service->GetRequestPrototype(method).New());
+	if (!request->ParseFromString(args_str))
+	{
+	    std::print("request parse error, content:{}\n", args_str);
+	    return;
+	}
+
+	std::shared_ptr<google::protobuf::Message> response(
+	    service->GetResponsePrototype(method).New());
+	// 设置服务端执行完毕的回调函数
+	std::shared_ptr<RpcCallContext> ctx_p(
 	    new RpcCallContext{request, response});
 	// RpcCallContext ctx{request, response};
 
@@ -212,6 +287,12 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 	    const ::muduo::net::TcpConnectionPtr &,
 	    std::shared_ptr<RpcCallContext>>(
 	    this, &RpcProvider::SendRpcResponse, conn, ctx_p);
+
+	*/
+
+	std::print("{}::service->CallMethod(method, nullptr, request.get(), "
+	           "response.get(), done);\n",
+	    __LINE__);
 
 	// 真正调用方法
 	service->CallMethod(method, nullptr, request.get(), response.get(), done);
@@ -222,16 +303,37 @@ void RpcProvider::OnMessage(const muduo::net::TcpConnectionPtr &conn,
 void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr &conn,
     std::shared_ptr<RpcCallContext> ctx)
 {
-	std::shared_ptr<google::protobuf::Message> response = ctx->response;
-	std::string response_str;
-	if (response->SerializeToString(&response_str))
+	std::string responsePayload;
+
+	if (!ctx->response->SerializeToString(&responsePayload))
 	{
-		conn->send(response_str);
+		std::print("serialize response payload failed\n");
+		return;
 	}
-	else
+
+	RPC::RpcResponseFrame responseFrame;
+	responseFrame.set_request_id(ctx->requestId);
+	responseFrame.set_payload(std::move(responsePayload));
+
+	std::string frameBody;
+
+	if (!responseFrame.SerializeToString(&frameBody))
 	{
-		std::print("serialize response_str error!\n");
+		std::print("serialize RpcResponseFrame failed\n");
+		return;
 	}
+
+	std::string wireFrame;
+
+	{
+		google::protobuf::io::StringOutputStream output(&wireFrame);
+		google::protobuf::io::CodedOutputStream coded(&output);
+
+		coded.WriteVarint32(static_cast<uint32_t>(frameBody.size()));
+		coded.WriteString(frameBody);
+	}
+
+	conn->send(wireFrame);
 }
 
 RpcProvider::~RpcProvider()

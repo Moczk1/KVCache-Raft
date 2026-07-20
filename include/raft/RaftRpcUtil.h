@@ -1,9 +1,13 @@
 #pragma once
 #include "raftRPC.pb.h"
+#include "rpc/MrpcchannelMultiReq.h"
+#include "rpc/mrpcchannel.h"
+#include "rpc/mrpccontroller.h"
 #include <functional>
+#include <google/protobuf/message.h>
 #include <memory>
 #include <mutex>
-#include "rpc/mrpcchannel.h"
+#include <thread>
 
 namespace mraft
 {
@@ -16,14 +20,12 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	std::string m_ip;
 	short m_port;
 	std::shared_ptr<Mrpcchannel> m_asyncChannel;
+	std::shared_ptr<MrpcchannelMultiReq> m_channel_MR;
 
   public:
-	using AppendEntriesCallback = std::function<void(
-	    bool ok, std::shared_ptr<raftRpcProctoc::AppendEntriesReply>)>;
-	using RequestVoteCallback = std::function<void(
-	    bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply>)>;
-	using InstallSnapshotCallback = std::function<void(
-	    bool ok, std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse>)>;
+	using AppendEntriesCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::AppendEntriesReply>)>;
+	using RequestVoteCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply>)>;
+	using InstallSnapshotCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse>)>;
 
 	/**  Async method */
 	bool AppendEntriesAsync(
@@ -42,8 +44,6 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	    raftRpcProctoc::InstallSnapshotResponse *response);
 	bool RequestVote(raftRpcProctoc::RequestVoteArgs *args,
 	    raftRpcProctoc::RequestVoteReply *response);
-
-	
 
 	/**
 	 * @brief 创建channel -> 创建 stub -> 完成raftuitl创建
@@ -79,5 +79,7 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	  private:
 		std::function<void()> m_callback;
 	};
+
+	
 };
 } // namespace mraft
