@@ -35,13 +35,11 @@ MrpcchannelMultiReq::MrpcchannelMultiReq(
 		std::cout << errMsg << std::endl;
 		rt = newConnect(m_ip.c_str(), m_port, &errMsg);
 	}
-	// m_sender->scheduleLock([this]{});
 	m_recipient->scheduleLock([this] { this->recvLoop(); });
 }
 
-void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method,
-    RpcController *controller, const Message *request, Message *response,
-    Closure *done)
+void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method, RpcController *controller,
+    const Message *request, Message *response, Closure *done)
 {
 	if (m_clientFd == -1)
 	{
@@ -50,15 +48,13 @@ void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method,
 		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
 		if (!rt)
 		{
-			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__,
-			    m_ip, m_port);
+			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
 			controller->SetFailed(errMsg);
 			return;
 		}
 		else
 		{
-			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__,
-			    m_ip, m_port);
+			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
 		}
 	}
 
@@ -128,6 +124,10 @@ void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method,
 		cs.WriteString(frame_str);
 	} // 网络发送的消息 string 已经写入了 wireString 变量中
 
+
+	// std::print("send vote response: requestId={}, payloadSize={}\n", requestId, req_str.size());
+
+
 	// 投放进 coroutine 队列
 	auto task = [this, wire = std::move(wireString)]()
 	{
@@ -137,8 +137,7 @@ void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method,
 	m_sender->scheduleLock(std::move(task), -1);
 }
 
-bool MrpcchannelMultiReq::sendAll(
-    const char *data, size_t size, std::string *errMsg)
+bool MrpcchannelMultiReq::sendAll(const char *data, size_t size, std::string *errMsg)
 {
 	ssize_t sent = 0;
 	while (sent < size)
@@ -156,8 +155,7 @@ bool MrpcchannelMultiReq::sendAll(
 			continue;
 		}
 
-		*errMsg = std::format(
-		    "[{}-MrpcchannelMultiReq-{}]::send failed\n", GetTime(), __func__);
+		*errMsg = std::format("[{}-MrpcchannelMultiReq-{}]::send failed\n", GetTime(), __func__);
 
 		return false;
 	}
@@ -174,7 +172,7 @@ bool MrpcchannelMultiReq::recvExact(void *buffer, size_t size)
 
 	while (recived < size)
 	{
-		ssize_t n = ::recv(m_clientFd, data+ recived, size-recived, 0);
+		ssize_t n = ::recv(m_clientFd, data + recived, size - recived, 0);
 		if (n > 0)
 		{
 			recived += static_cast<size_t>(n);
@@ -285,6 +283,9 @@ void MrpcchannelMultiReq::completeResponse(const RPC::RpcResponseFrame &frame)
 	{
 		std::lock_guard lock(m_pendingMutex);
 
+		// std::print("complete response: requestId={}, payloadSize={}\n", frame.request_id(),
+		// frame.payload().size());
+
 		auto it = m_pendings.find(frame.request_id());
 		if (it == m_pendings.end())
 		{
@@ -296,8 +297,7 @@ void MrpcchannelMultiReq::completeResponse(const RPC::RpcResponseFrame &frame)
 		m_pendings.erase(it);
 	}
 
-	auto task =
-	    [pending = std::move(pending), payload = frame.payload()]() mutable
+	auto task = [pending = std::move(pending), payload = frame.payload()]() mutable
 	{
 		if (!pending.response->ParseFromString(payload))
 		{
@@ -314,8 +314,7 @@ void MrpcchannelMultiReq::completeResponse(const RPC::RpcResponseFrame &frame)
 	m_worker->scheduleLock(std::move(task), -1);
 }
 
-bool MrpcchannelMultiReq::newConnect(
-    const char *ip, uint16_t port, std::string *errMsg)
+bool MrpcchannelMultiReq::newConnect(const char *ip, uint16_t port, std::string *errMsg)
 {
 	int clientFd = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (clientFd == -1)

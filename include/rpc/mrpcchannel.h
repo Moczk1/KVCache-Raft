@@ -54,14 +54,19 @@ class Mrpcchannel : public google::protobuf::RpcChannel
 	Mrpcchannel(const Mrpcchannel &) = delete;
 	Mrpcchannel &operator=(const Mrpcchannel &) = delete;
 
+
+	std::atomic<uint64_t> m_request_id{0};
+
   private:
 	int m_clientFd;
 	const std::string m_ip;
 	const uint16_t m_port;
 	const int m_retryCount = 3;
 	bool newConnect(const char *ip, uint16_t prot, std::string *errMsg);
-	void CallMethodImpl(const MethodDescriptor *method,
-	    RpcController *controller, const Message *request, Message *response);
+	void CallMethodImpl1(const MethodDescriptor *method, RpcController *controller,
+	    const Message *request, Message *response);
+	void CallMethodImplFrame(const MethodDescriptor *method, RpcController *controller,
+	    const Message *request, Message *response);
 };
 
 /**
@@ -71,9 +76,8 @@ class Mrpcchannel : public google::protobuf::RpcChannel
  * saveCallee，以 shared_ptr 保证异步期间参数和回调的生命周期。
  * CallMethod 与 wait 必须在 IOManager 调度的 Fiber 中执行。
  */
-class MrpcAsyncChannel final
-    : public google::protobuf::RpcChannel,
-      public std::enable_shared_from_this<MrpcAsyncChannel>
+class MrpcAsyncChannel final : public google::protobuf::RpcChannel,
+                               public std::enable_shared_from_this<MrpcAsyncChannel>
 {
   public:
 	using ptr = std::shared_ptr<MrpcAsyncChannel>;
@@ -84,8 +88,8 @@ class MrpcAsyncChannel final
 	// MrpcAsyncChannel(std::string ip, short port, int retry = 3);
 	MrpcAsyncChannel(std::shared_ptr<Mrpcchannel> transport);
 
-	void saveCallee(ControllerPtr controller, MessagePtr request,
-	    MessagePtr response, ClosurePtr done = nullptr);
+	void saveCallee(ControllerPtr controller, MessagePtr request, MessagePtr response,
+	    ClosurePtr done = nullptr);
 
 	// 只投递 RPC Fiber，方法本身不等待网络响应。
 	void CallMethod(const MethodDescriptor *method, RpcController *controller,

@@ -15,16 +15,16 @@ message RpcHeader
 message RpcRequestFrame
 {
     //  前添加变长总长度
-    uint64 request_id = 2;  
-    bytes service_name = 3;
-    bytes method_name = 4;
-    bytes payload = 5; 
+    uint64 request_id = 1;  
+    bytes service_name = 2;
+    bytes method_name = 3;
+    bytes payload = 4; 
 }
 
 
 
 message RpcResponseFrame
 {
-    uint64 request_id = 2;
-    bytes payload = 3;
+    uint64 request_id = 1;
+    bytes payload = 2;
 }

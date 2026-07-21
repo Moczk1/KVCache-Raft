@@ -37,8 +37,7 @@ void worker(int threadId, int count, ThreadStat &stat)
 
 	auto end = Clock::now();
 
-	stat.elapsed =
-	    std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	stat.elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 }
 
 int main()
@@ -62,8 +61,7 @@ int main()
 
 	auto benchEnd = Clock::now();
 
-	double totalSeconds =
-	    std::chrono::duration<double>(benchEnd - benchStart).count();
+	double totalSeconds = std::chrono::duration<double>(benchEnd - benchStart).count();
 
 	const int totalOps = threadNum * countPerThread * 2;
 

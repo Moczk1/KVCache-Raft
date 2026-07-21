@@ -8,3 +8,9 @@ TabWidth: 4
 
 AlignAfterOpenBracket: DontAlign
 ContinuationIndentWidth: 4
+
+# 最多保留连续空行的数量
+MaxEmptyLinesToKeep: 300
+
+
+ColumnLimit: 100

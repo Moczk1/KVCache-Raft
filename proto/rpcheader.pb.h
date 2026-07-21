@@ -373,12 +373,12 @@ class RpcRequestFrame final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kServiceNameFieldNumber = 3,
-    kMethodNameFieldNumber = 4,
-    kPayloadFieldNumber = 5,
-    kRequestIdFieldNumber = 2,
+    kServiceNameFieldNumber = 2,
+    kMethodNameFieldNumber = 3,
+    kPayloadFieldNumber = 4,
+    kRequestIdFieldNumber = 1,
   };
-  // bytes service_name = 3;
+  // bytes service_name = 2;
   void clear_service_name();
   const std::string& service_name() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -392,7 +392,7 @@ class RpcRequestFrame final :
   std::string* _internal_mutable_service_name();
   public:
 
-  // bytes method_name = 4;
+  // bytes method_name = 3;
   void clear_method_name();
   const std::string& method_name() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -406,7 +406,7 @@ class RpcRequestFrame final :
   std::string* _internal_mutable_method_name();
   public:
 
-  // bytes payload = 5;
+  // bytes payload = 4;
   void clear_payload();
   const std::string& payload() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -420,7 +420,7 @@ class RpcRequestFrame final :
   std::string* _internal_mutable_payload();
   public:
 
-  // uint64 request_id = 2;
+  // uint64 request_id = 1;
   void clear_request_id();
   uint64_t request_id() const;
   void set_request_id(uint64_t value);
@@ -567,10 +567,10 @@ class RpcResponseFrame final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kPayloadFieldNumber = 3,
-    kRequestIdFieldNumber = 2,
+    kPayloadFieldNumber = 2,
+    kRequestIdFieldNumber = 1,
   };
-  // bytes payload = 3;
+  // bytes payload = 2;
   void clear_payload();
   const std::string& payload() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -584,7 +584,7 @@ class RpcResponseFrame final :
   std::string* _internal_mutable_payload();
   public:
 
-  // uint64 request_id = 2;
+  // uint64 request_id = 1;
   void clear_request_id();
   uint64_t request_id() const;
   void set_request_id(uint64_t value);
@@ -742,7 +742,7 @@ inline void RpcHeader::set_args_size(uint32_t value) {
 
 // RpcRequestFrame
 
-// uint64 request_id = 2;
+// uint64 request_id = 1;
 inline void RpcRequestFrame::clear_request_id() {
   request_id_ = uint64_t{0u};
 }
@@ -762,7 +762,7 @@ inline void RpcRequestFrame::set_request_id(uint64_t value) {
   // @@protoc_insertion_point(field_set:RPC.RpcRequestFrame.request_id)
 }
 
-// bytes service_name = 3;
+// bytes service_name = 2;
 inline void RpcRequestFrame::clear_service_name() {
   service_name_.ClearToEmpty();
 }
@@ -813,7 +813,7 @@ inline void RpcRequestFrame::set_allocated_service_name(std::string* service_nam
   // @@protoc_insertion_point(field_set_allocated:RPC.RpcRequestFrame.service_name)
 }
 
-// bytes method_name = 4;
+// bytes method_name = 3;
 inline void RpcRequestFrame::clear_method_name() {
   method_name_.ClearToEmpty();
 }
@@ -864,7 +864,7 @@ inline void RpcRequestFrame::set_allocated_method_name(std::string* method_name)
   // @@protoc_insertion_point(field_set_allocated:RPC.RpcRequestFrame.method_name)
 }
 
-// bytes payload = 5;
+// bytes payload = 4;
 inline void RpcRequestFrame::clear_payload() {
   payload_.ClearToEmpty();
 }
@@ -919,7 +919,7 @@ inline void RpcRequestFrame::set_allocated_payload(std::string* payload) {
 
 // RpcResponseFrame
 
-// uint64 request_id = 2;
+// uint64 request_id = 1;
 inline void RpcResponseFrame::clear_request_id() {
   request_id_ = uint64_t{0u};
 }
@@ -939,7 +939,7 @@ inline void RpcResponseFrame::set_request_id(uint64_t value) {
   // @@protoc_insertion_point(field_set:RPC.RpcResponseFrame.request_id)
 }
 
-// bytes payload = 3;
+// bytes payload = 2;
 inline void RpcResponseFrame::clear_payload() {
   payload_.ClearToEmpty();
 }

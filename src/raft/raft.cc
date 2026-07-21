@@ -16,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <climits>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <print>
@@ -37,8 +38,7 @@
 namespace mraft
 {
 void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
-    std::shared_ptr<Persister> persister,
-    std::shared_ptr<LockQueue<ApplyMsg>> applyCh)
+    std::shared_ptr<Persister> persister, std::shared_ptr<LockQueue<ApplyMsg>> applyCh)
 {
 	m_peers = peers;
 	m_persister = persister;
@@ -81,9 +81,8 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 
 #if __Method_switch__ == __THREAD_POOL__
 	m_threadPool = std::make_unique<moczkrin::ThreadPool>(5, 20, 300,
-	    moczkrin::ThreadPool::millisecond,
-	    moczkrin::ThreadPool::LinkedBlockingQueue, INT_MAX - 1, "threadpool",
-	    moczkrin::ThreadPool::CallerRunsPolicy);
+	    moczkrin::ThreadPool::millisecond, moczkrin::ThreadPool::LinkedBlockingQueue, INT_MAX - 1,
+	    "threadpool", moczkrin::ThreadPool::CallerRunsPolicy);
 	std::print("=============================\n");
 	m_threadPool->execute(0, &raft::leaderHeartBeatTricker, this);
 	std::print("=============================\n");
@@ -93,10 +92,8 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 
 #if __Method_switch__ != __THREAD_POOL__
 	m_ioManager = std::make_unique<moczkrin::IOManager>(5, false);
-	m_ioManager->scheduleLock(
-	    [this] -> void { this->leaderHeartBeatTricker(); });
-	m_ioManager->scheduleLock(
-	    [this] -> void { this->electionTimeOutTicker(); });
+	m_ioManager->scheduleLock([this] -> void { this->leaderHeartBeatTricker(); });
+	m_ioManager->scheduleLock([this] -> void { this->electionTimeOutTicker(); });
 #endif
 
 	// #if __Method_switch__ == __DIRECT_THREAD__
@@ -123,8 +120,7 @@ void raft::electionTimeOutTicker()
 		while (m_state.load() == leader)
 		{
 			// usleep(__useconds_t useconds)
-			std::this_thread::sleep_for(
-			    std::chrono::milliseconds(HEARTBEATTIMEOUT));
+			std::this_thread::sleep_for(std::chrono::milliseconds(HEARTBEATTIMEOUT));
 		}
 		// std::chrono::duration<signed long int, std::milli>
 		// suitableSleepTime{}; std::chrono::system_clock::time_point
@@ -199,15 +195,14 @@ void raft::electionTimeOutTicker()
 		{
 			std::random_device rd;
 			std::mt19937 rng(rd());
-			std::uniform_int_distribution<int> dist(
-			    MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
+			std::uniform_int_distribution<int> dist(MIN_ELECTION_INTERVAL, MAX_ELECTION_INTERVAL);
 			return std::chrono::milliseconds(dist(rng));
 		}();
 
 		std::unique_lock<std::mutex> lock(m_mtx);
 
-		bool isreset = m_cv_lastElection.wait_for(lock, suitableSleepTime,
-		    [&] { return m_lastElectionTime > wakeTime; });
+		bool isreset = m_cv_lastElection.wait_for(
+		    lock, suitableSleepTime, [&] { return m_lastElectionTime > wakeTime; });
 
 		if (!isreset)
 		{
@@ -250,9 +245,8 @@ void raft::doElection()
 		m_cv_lastElection.notify_one();
 
 		// 给所有的 peer 发送选举 rpc
-		std::vector<
-		    std::tuple<int, std::shared_ptr<raftRpcProctoc::RequestVoteArgs>,
-		        std::shared_ptr<raftRpcProctoc::RequestVoteReply>>>
+		std::vector<std::tuple<int, std::shared_ptr<raftRpcProctoc::RequestVoteArgs>,
+		    std::shared_ptr<raftRpcProctoc::RequestVoteReply>>>
 		    requests;
 
 		for (int i = 0; i < m_peers.size(); i++)
@@ -272,8 +266,7 @@ void raft::doElection()
 			requests.push_back(std::make_tuple(i, args, reply));
 
 #if __Method_switch__ == __DIRECT_THREAD__
-			std::thread t(
-			    &raft::sendRequestVote, this, i, args, reply, votedNum);
+			std::thread t(&raft::sendRequestVote, this, i, args, reply, votedNum);
 			t.detach();
 
 #endif
@@ -284,8 +277,7 @@ void raft::doElection()
 		{
 
 #if __Method_switch__ == __THREAD_POOL__
-			m_threadPool->execute(
-			    0, &raft::sendRequestVote, this, i, args, reply, votedNum);
+			m_threadPool->execute(0, &raft::sendRequestVote, this, i, args, reply, votedNum);
 #endif
 
 #if __Method_switch__ == __COROUTINE__
@@ -296,13 +288,10 @@ void raft::doElection()
 #if __Method_switch__ == __ASYNC__
 			m_ioManager->scheduleLock(
 			    [peer = m_peers[i], args,
-			        callback =
-			            [this, i, args, votedNum](bool ok,
-			                std::shared_ptr<raftRpcProctoc::RequestVoteReply>
-			                    reply)
-			        {
-				        handleRequestVoteResponse(i, args, reply, votedNum, ok);
-			        }]() { peer->RequestVoteAsync(args, callback); });
+			        callback = [this, i, args, votedNum](
+			                       bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply)
+			        { handleRequestVoteResponse(i, args, reply, votedNum, ok); }]()
+			    { peer->RequestVoteAsync(args, callback); });
 #endif
 		}
 #endif
@@ -311,8 +300,7 @@ void raft::doElection()
 
 void raft::handleRequestVoteResponse(int peer,
     std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
-    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
-    std::shared_ptr<int> votedNum, bool ok)
+    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum, bool ok)
 {
 	if (!ok)
 	{
@@ -360,8 +348,7 @@ void raft::handleRequestVoteResponse(int peer,
 	// 计票
 	*votedNum += 1;
 
-	if (*votedNum >=
-	    m_peers.size() / 2 + 1) // 如果满足过半数同意->成功晋升leader
+	if (*votedNum >= m_peers.size() / 2 + 1) // 如果满足过半数同意->成功晋升leader
 	{
 		votedNum = 0; // 幂等性？
 
@@ -385,14 +372,19 @@ void raft::handleRequestVoteResponse(int peer,
 		{
 			if (i == m_id)
 				continue;
-			m_nextIndex[i] =
-			    getLastLogIndex() + 1; // 远端想要的下一个 index 编号
-			m_matchIndex[i] = 0;       // 每换一个领导则重置远端的 commit 号
+			m_nextIndex[i] = getLastLogIndex() + 1; // 远端想要的下一个 index 编号
+			m_matchIndex[i] = 0;                    // 每换一个领导则重置远端的 commit 号
 		}
 
+
+		// std::print("[{}-{}-raft] id:{} state:{}\n", __FILE__, __LINE__, m_id,
+		//     static_cast<int64_t>(m_state.load()));
+
+#if __Method_switch__ == __DIRECT_THREAD__
 		// 启动 成为 leader 后的定时任务
 		std::thread t(&raft::doHeartBeat, this);
 		t.detach();
+#endif
 
 		// 持久化
 		DeferClass defer([this] { persist(); });
@@ -400,16 +392,14 @@ void raft::handleRequestVoteResponse(int peer,
 	return;
 }
 
-bool raft::sendRequestVote(int i,
-    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
-    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
-    std::shared_ptr<int> votedNum)
+bool raft::sendRequestVote(int i, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum)
 {
 	// auto start = now();
 
 	if (this->Log)
-		std::print("[raft]:{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n",
-		    __FUNCTION__, __LINE__, m_id, i);
+		std::print("[raft]:{}:{}::\t\trf{}] 向server{} 發送 RequestVote 開始\n", __FUNCTION__,
+		    __LINE__, m_id, i);
 	// 发送消息
 	bool status = m_peers[i]->RequestVote(args.get(), reply.get());
 
@@ -506,8 +496,8 @@ bool raft::sendRequestVote(int i,
 }
 
 // server 远端接收到 rpc 请求
-void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
-    ::raftRpcProctoc::RequestVoteReply *response)
+void raft::RequestVote(
+    const ::raftRpcProctoc::RequestVoteArgs *request, ::raftRpcProctoc::RequestVoteReply *response)
 {
 
 	std::unique_lock<std::mutex> lock(m_mtx);
@@ -594,8 +584,7 @@ void raft::RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 
 // 重写框架的 调用接口
 void raft::RequestVote(google::protobuf::RpcController *controller,
-    const ::raftRpcProctoc::RequestVoteArgs *request,
-    ::raftRpcProctoc::RequestVoteReply *response,
+    const ::raftRpcProctoc::RequestVoteArgs *request, ::raftRpcProctoc::RequestVoteReply *response,
     ::google::protobuf::Closure *done)
 {
 	RequestVote(request, response);
@@ -606,15 +595,16 @@ void raft::leaderHeartBeatTricker()
 {
 	while (true)
 	{
+		std::print("[raft]:rf id:{} state:{}\n", m_id,
+		    static_cast<int>(m_state.load(std::memory_order_acquire)));
+			
 		while (m_state.load() != leader)
 		{
-			std::this_thread::sleep_for(
-			    std::chrono::milliseconds(HEARTBEATTIMEOUT));
+			std::this_thread::sleep_for(std::chrono::milliseconds(HEARTBEATTIMEOUT));
 		}
 
 		static std::atomic<int32_t> atomicCount = 0;
-		std::chrono::duration<unsigned long int, std::milli>
-		    suitableSleepTime{};
+		std::chrono::duration<unsigned long int, std::milli> suitableSleepTime{};
 		std::chrono::system_clock::time_point wakeTime{};
 
 		/**
@@ -687,7 +677,10 @@ void raft::leaderHeartBeatTricker()
 void raft::doHeartBeat()
 {
 	std::unique_lock<std::mutex> lock(m_mtx);
-	std::print("[raft] rf id:{} state:{}\n", m_id, static_cast<int>(m_state.load(std::memory_order_acquire)));
+
+	// std::print("[raft] rf id:{} state:{}\n", m_id,
+	// static_cast<int>(m_state.load(std::memory_order_acquire)));
+
 	if (m_state.load() != leader) // 非 leader 环境下直接退出此线程
 		return;
 
@@ -703,10 +696,8 @@ void raft::doHeartBeat()
 
 	auto appedNum = std::make_shared<int>(1);
 
-	std::vector<
-	    std::tuple<int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
-	        std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
-	        std::shared_ptr<int>>>
+	std::vector<std::tuple<int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>, std::shared_ptr<int>>>
 	    requests;
 
 	for (int i = 0; i < m_peers.size(); i++)
@@ -714,9 +705,8 @@ void raft::doHeartBeat()
 		if (i == m_id)
 			continue;
 		if (this->Log)
-			std::print(
-			    "{}:{}::\tLeader: {} Leader的心跳定时器触发了 index:{}\n",
-			    __FUNCTION__, __LINE__, m_id, i);
+			std::print("{}:{}::\tLeader: {} Leader的心跳定时器触发了 index:{}\n", __FUNCTION__,
+			    __LINE__, m_id, i);
 		assert(m_nextIndex[i] >= 1);
 
 		// 由于有持久化的数据，所需需要判断发送数据的来源
@@ -733,8 +723,7 @@ void raft::doHeartBeat()
 		getPrevLogInfo(i, preLogIndexandTerm[0], preLogIndexandTerm[1]);
 
 		// 构造发送 request 的结构体
-		auto appendEntriesArgs =
-		    std::make_shared<raftRpcProctoc::AppendEntriesArgs>();
+		auto appendEntriesArgs = std::make_shared<raftRpcProctoc::AppendEntriesArgs>();
 		appendEntriesArgs->set_term(m_currentTerm);
 		appendEntriesArgs->set_leaderid(m_id);
 		appendEntriesArgs->set_prevlogindex(preLogIndexandTerm[0]);
@@ -755,8 +744,7 @@ void raft::doHeartBeat()
 			int startIndex = preLogIndexandTerm[0] - m_lastSnapshotIndex - 1;
 			for (int j = startIndex + 1; j < m_logs.size(); j++)
 			{
-				raftRpcProctoc::LogEntry *sendEntryPtr =
-				    appendEntriesArgs->add_entries();
+				raftRpcProctoc::LogEntry *sendEntryPtr = appendEntriesArgs->add_entries();
 				*sendEntryPtr = m_logs[j];
 			}
 		}
@@ -764,8 +752,7 @@ void raft::doHeartBeat()
 		{ // 直接全部复制发送 m_logs
 			for (const auto &item : m_logs)
 			{
-				raftRpcProctoc::LogEntry *sendEntryPtr =
-				    appendEntriesArgs->add_entries();
+				raftRpcProctoc::LogEntry *sendEntryPtr = appendEntriesArgs->add_entries();
 				*sendEntryPtr = item;
 			}
 		}
@@ -773,15 +760,12 @@ void raft::doHeartBeat()
 		int lastLogTerm;
 		getLastLogIndexandTerm(lastLogIndex, lastLogTerm);
 
-		assert(appendEntriesArgs->prevlogindex() +
-		           appendEntriesArgs->entries_size() ==
-		       lastLogIndex);
+		assert(
+		    appendEntriesArgs->prevlogindex() + appendEntriesArgs->entries_size() == lastLogIndex);
 
-		auto appendEntriesReply =
-		    std::make_shared<raftRpcProctoc::AppendEntriesReply>();
+		auto appendEntriesReply = std::make_shared<raftRpcProctoc::AppendEntriesReply>();
 
-		requests.emplace_back(
-		    i, appendEntriesArgs, appendEntriesReply, appedNum);
+		requests.emplace_back(i, appendEntriesArgs, appendEntriesReply, appedNum);
 
 		// std::thread t(&raft::sendAppendEntries, this, i, appendEntriesArgs,
 		//     appendEntriesReply, appedNum);
@@ -806,14 +790,12 @@ void raft::doHeartBeat()
 	{
 
 #if __Method_switch__ == __DIRECT_THREAD__
-		std::thread t(
-		    &raft::sendAppendEntries, this, i, args, reply, appendNum);
+		std::thread t(&raft::sendAppendEntries, this, i, args, reply, appendNum);
 		t.detach();
 #endif
 
 #if __Method_switch__ == __THREAD_POOL__
-		m_threadPool->execute(
-		    0, &raft::sendAppendEntries, this, i, args, reply, appedNum);
+		m_threadPool->execute(0, &raft::sendAppendEntries, this, i, args, reply, appedNum);
 #endif
 
 #if __Method_switch__ == __COROUTINE__
@@ -824,10 +806,8 @@ void raft::doHeartBeat()
 #if __Method_switch__ == __ASYNC__
 		m_ioManager->scheduleLock(
 		    [peer = m_peers[i], args,
-		        callback =
-		            [this, i, args, appendNum](bool ok,
-		                std::shared_ptr<raftRpcProctoc::AppendEntriesReply>
-		                    reply)
+		        callback = [this, i, args, appendNum](
+		                       bool ok, std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply)
 		        { handleAppendEntries(i, args, reply, appendNum, ok); }]()
 		    { peer->AppendEntriesAsync(args, callback); });
 #endif
@@ -837,23 +817,22 @@ void raft::doHeartBeat()
 	m_lastHearBeatTime = now();
 }
 
-void raft::handleAppendEntries(int server,
-    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
-    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
-    std::shared_ptr<int> appendNum, bool ok)
+void raft::handleAppendEntries(int server, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply, std::shared_ptr<int> appendNum,
+    bool ok)
 
 {
 	if (!ok)
 	{
 		if (this->Log)
-			std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n",
-			    __FUNCTION__, __LINE__, m_id, server);
+			std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc失敗\n", __FUNCTION__, __LINE__,
+			    m_id, server);
 		return;
 	}
 
 	if (this->Log)
-		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n",
-		    __FUNCTION__, __LINE__, m_id, server);
+		std::print("{}:{}::\t\traft{} leader 向节点{}发送AE rpc成功\n", __FUNCTION__, __LINE__,
+		    m_id, server);
 
 	std::unique_lock<std::mutex> lock(m_mtx);
 
@@ -902,12 +881,12 @@ void raft::handleAppendEntries(int server,
 	{ // success！
 		*appendNum += 1;
 		if (this->Log)
-			std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n",
-			    __FUNCTION__, __LINE__, m_id, *appendNum);
+			std::print("{}:{}::\t\t節點{}返回true,當前*appendNums{}\n", __FUNCTION__, __LINE__,
+			    m_id, *appendNum);
 
 		// 对某个消息发送了多遍（心跳时就会再发送），那么一条消息会导致n次上涨
-		m_matchIndex[server] = std::max({m_matchIndex[server],
-		    args->prevlogindex() + args->entries_size()});
+		m_matchIndex[server] =
+		    std::max({m_matchIndex[server], args->prevlogindex() + args->entries_size()});
 		m_nextIndex[server] = m_matchIndex[server] + 1;
 
 		int lastLogIndexandTerm[2] = {0, 0};
@@ -992,10 +971,8 @@ void raft::advanceCommitIndex()
 	}
 }
 
-bool raft::sendAppendEntries(int server,
-    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
-    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
-    std::shared_ptr<int> appendNum)
+bool raft::sendAppendEntries(int server, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply, std::shared_ptr<int> appendNum)
 {
 
 	if (this->Log)
@@ -1146,10 +1123,8 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		response->set_term(m_currentTerm);
 		response->set_updatenextindex(-100);
 		if (this->Log)
-			std::print(
-			    "{}:{}::\t\trf{} 拒绝了 因为Leader{}的term{}< rf{}.term{}\n",
-			    __FUNCTION__, __LINE__, m_id, request->leaderid(),
-			    request->term(), m_id, m_currentTerm);
+			std::print("{}:{}::\t\trf{} 拒绝了 因为Leader{}的term{}< rf{}.term{}\n", __FUNCTION__,
+			    __LINE__, m_id, request->leaderid(), request->term(), m_id, m_currentTerm);
 		return; // 直接返回：无效的AE，不需要重置定时器
 	}
 
@@ -1262,9 +1237,8 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 						std::print("{}:{}::\t\trf{}两节点logIndex{}和term{}"
 						           "相同，但是其command却不同"
 						           "{}:{}:::{}:{}！！\n",
-						    __FUNCTION__, __LINE__, m_id, log.logindex(),
-						    log.logterm(), m_id, m_logs[v_logindex].command(),
-						    request->leaderid(), log.command());
+						    __FUNCTION__, __LINE__, m_id, log.logindex(), log.logterm(), m_id,
+						    m_logs[v_logindex].command(), request->leaderid(), log.command());
 					}
 					exit(-1); // 程序出现严重逻辑问题
 				}
@@ -1281,12 +1255,10 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 			int req_last_log_index = 0;
 			if (request->entries_size() != 0)
 			{
-				req_last_log_index =
-				    request->entries(request->entries_size() - 1).logindex();
+				req_last_log_index = request->entries(request->entries_size() - 1).logindex();
 				if (req_last_log_index < getLastLogIndex())
 				{
-					for (int i = getLastLogIndex(); i >= req_last_log_index + 1;
-					    i--)
+					for (int i = getLastLogIndex(); i >= req_last_log_index + 1; i--)
 					{
 						int offset = i - m_lastSnapshotIndex - 1;
 						m_logs.erase(m_logs.begin() + offset);
@@ -1297,15 +1269,13 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
 
 		// 保证逻辑正确性
-		assert(lastLogIndexandTerm[0] >=
-		       request->prevlogindex() + request->entries_size());
+		assert(lastLogIndexandTerm[0] >= request->prevlogindex() + request->entries_size());
 
 		/** 下面判断 commit 参数 */
 		if (request->leadercommit() > m_commitIndex)
 		{
 			const int oldCommit = m_commitIndex;
-			m_commitIndex =
-			    std::min({request->leadercommit(), lastLogIndexandTerm[0]});
+			m_commitIndex = std::min({request->leadercommit(), lastLogIndexandTerm[0]});
 			if (oldCommit != m_commitIndex)
 				m_applyCv.notify_one();
 		}
@@ -1336,11 +1306,9 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		const int prevLogTerm =
 		    request->prevlogindex() == m_lastSnapshotIndex
 		        ? m_lastSnapshotTerm
-		        : m_logs[request->prevlogindex() - m_lastSnapshotIndex - 1]
-		              .logterm();
+		        : m_logs[request->prevlogindex() - m_lastSnapshotIndex - 1].logterm();
 
-		for (int index = request->prevlogindex(); index >= m_lastSnapshotIndex;
-		    index--)
+		for (int index = request->prevlogindex(); index >= m_lastSnapshotIndex; index--)
 		{
 			int i;
 			int term;
@@ -1370,8 +1338,7 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 
 void raft::AppendEntries(google::protobuf::RpcController *controller,
     const ::raftRpcProctoc::AppendEntriesArgs *request,
-    ::raftRpcProctoc::AppendEntriesReply *response,
-    ::google::protobuf::Closure *done)
+    ::raftRpcProctoc::AppendEntriesReply *response, ::google::protobuf::Closure *done)
 {
 	AppendEntries(request, response);
 	done->Run();
@@ -1464,8 +1431,7 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 		return;
 	}
 
-	if (m_lastSnapshotIndex <= m_commitIndex ||
-	    m_lastSnapshotIndex <= m_lastApplied)
+	if (m_lastSnapshotIndex <= m_commitIndex || m_lastSnapshotIndex <= m_lastApplied)
 	{
 		return;
 	}
@@ -1520,9 +1486,8 @@ void raft::Snapshot(int index, std::string snapshot)
 	{
 		if (DEBUG)
 		{
-			std::print(
-			    "{}:[func-{}-rf{} rejects replacing log with snapshotIndex "
-			    "{} as current snapshotIndex {} is larger or smaller\n",
+			std::print("{}:[func-{}-rf{} rejects replacing log with snapshotIndex "
+			           "{} as current snapshotIndex {} is larger or smaller\n",
 			    GetTime(), __func__, m_id, index, m_lastSnapshotIndex);
 		}
 		return;
@@ -1554,18 +1519,15 @@ void raft::Snapshot(int index, std::string snapshot)
 
 	if (DEBUG)
 	{
-		std::print(
-		    "{}:{} Server {} snapshot  snapshot index {}, term {}, logLen {}\n",
-		    GetTime(), __func__, m_id, index, m_lastSnapshotTerm,
-		    m_logs.size());
+		std::print("{}:{} Server {} snapshot  snapshot index {}, term {}, logLen {}\n", GetTime(),
+		    __func__, m_id, index, m_lastSnapshotTerm, m_logs.size());
 	}
 	assert(m_logs.size() + m_lastSnapshotIndex == lastLogIndex);
 }
 
 void raft::InstallSnapshot(google::protobuf::RpcController *controller,
     const ::raftRpcProctoc::InstallSnapshotRequest *request,
-    ::raftRpcProctoc::InstallSnapshotResponse *response,
-    ::google::protobuf::Closure *done)
+    ::raftRpcProctoc::InstallSnapshotResponse *response, ::google::protobuf::Closure *done)
 {
 	InstallSnapshot(request, response);
 	done->Run();
@@ -1676,8 +1638,7 @@ std::vector<ApplyMsg> raft::getApplyLogs()
 	while (m_lastApplied < m_commitIndex)
 	{
 		m_lastApplied++;
-		assert(m_logs[m_lastApplied - m_lastSnapshotIndex - 1].logindex() ==
-		       m_lastApplied);
+		assert(m_logs[m_lastApplied - m_lastSnapshotIndex - 1].logindex() == m_lastApplied);
 		ApplyMsg msg;
 		msg.CommandValid = true;
 		msg.SnapshotValid = false;
@@ -1695,8 +1656,7 @@ void raft::Start(Op op, int &index, int &term, bool &isLeader)
 
 	if (m_state.load() != leader)
 	{
-		std::print(
-		    "{}:{}::\t\trf{} is not leader!\n", __FUNCTION__, __LINE__, m_id);
+		std::print("{}:{}::\t\trf{} is not leader!\n", __FUNCTION__, __LINE__, m_id);
 		index = -1;
 		term = -1;
 		isLeader = false;
@@ -1713,8 +1673,8 @@ void raft::Start(Op op, int &index, int &term, bool &isLeader)
 
 	getLastLogIndexandTerm(indexandterm[0], indexandterm[1]);
 
-	std::print("{}:{}::\t\trf{} lastLogIndex:,command:{}\n", __FUNCTION__,
-	    __LINE__, m_id, op.asString());
+	std::print(
+	    "{}:{}::\t\trf{} lastLogIndex:,command:{}\n", __FUNCTION__, __LINE__, m_id, op.asString());
 
 	persist();
 

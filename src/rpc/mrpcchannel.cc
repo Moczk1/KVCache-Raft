@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <format>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
@@ -19,19 +20,18 @@
 
 namespace mraft
 {
-void Mrpcchannel::CallMethod(const MethodDescriptor *method,
-    RpcController *controller, const Message *request, Message *response,
-    Closure *done)
+void Mrpcchannel::CallMethod(const MethodDescriptor *method, RpcController *controller,
+    const Message *request, Message *response, Closure *done)
 {
-	CallMethodImpl(method, controller, request, response);
+	CallMethodImplFrame(method, controller, request, response);
 	if (done != nullptr)
 	{
 		done->Run();
 	}
 }
 
-void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
-    RpcController *controller, const Message *request, Message *response)
+void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcController *controller,
+    const Message *request, Message *response)
 {
 	if (m_clientFd == -1)
 	{
@@ -40,15 +40,146 @@ void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
 		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
 		if (!rt)
 		{
-			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__,
-			    m_ip, m_port);
+			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
 			controller->SetFailed(errMsg);
 			return;
 		}
 		else
 		{
-			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__,
-			    m_ip, m_port);
+			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
+		}
+	}
+	// 获取服务器和方法名
+	const google::protobuf::ServiceDescriptor *sd = method->service();
+	std::string service_name = sd->name();
+	std::string method_name = method->name();
+
+	// 获取参数长度
+	uint32_t args_size{};
+	std::string args_str;
+	if (request->SerializePartialToString(&args_str))
+	{
+		args_size = args_str.size();
+	}
+	else
+	{
+		controller->SetFailed("serialize request error!");
+		return;
+	}
+
+
+	RPC::RpcRequestFrame req_fmt{};
+	req_fmt.set_request_id(m_request_id.fetch_add(1, std::memory_order_relaxed));
+	req_fmt.set_method_name(method_name);
+	req_fmt.set_service_name(service_name);
+	req_fmt.set_payload(args_str);
+
+	std::string req_fmt_str{};
+	if (!req_fmt.SerializePartialToString(&req_fmt_str))
+	{
+		controller->SetFailed("req message serialize to string failed!");
+		return;
+	}
+
+	std::string wire_str{};
+	{
+		google::protobuf::io::StringOutputStream ss(&wire_str);
+		google::protobuf::io::CodedOutputStream cs(&ss);
+
+		cs.WriteVarint32(static_cast<uint32_t>(req_fmt_str.size()));
+		cs.WriteString(req_fmt_str);
+	}
+
+	while (-1 == ::send(m_clientFd, wire_str.c_str(), wire_str.size(), 0))
+	{
+		std::string info = std::format("send error! errno:{}", errno);
+		std::print("尝试重新连接，对方ip：{}, 对方端口", m_ip, m_port);
+		::close(m_clientFd);
+		m_clientFd = -1;
+		std::string errMsg;
+		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
+		if (!rt)
+		{
+			controller->SetFailed(errMsg);
+			return;
+		}
+	}
+
+	// 接收返回结果
+	char recv_buf[1024] = {0};
+	::memset(recv_buf, 0, sizeof recv_buf);
+	int recv_size = 0;
+	if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0)))
+	{
+		::close(m_clientFd);
+		m_clientFd = -1;
+		std::string errtxt = std::format("recv error! errno:{}", errno);
+		controller->SetFailed(errtxt);
+		return;
+	}
+
+	std::string payload_str{};
+	{
+		google::protobuf::io::ArrayInputStream ai(recv_buf, sizeof recv_buf);
+		google::protobuf::io::CodedInputStream cis(&ai);
+		uint64_t size{};
+		cis.ReadVarint64(&size);
+		cis.ReadString(&payload_str, size);
+	}
+	// std::print("payload_str:{}\n", payload_str);
+
+	RPC::RpcResponseFrame respon_fmt{};
+	if (!respon_fmt.ParseFromString(payload_str))
+	{
+		controller->SetFailed("payload str parse into respon_fmt failed!");
+		return;
+	}
+
+	if(!response->ParseFromString(respon_fmt.payload()))
+	{
+		controller->SetFailed("respon_fmt parse into message failed");
+		return;
+	}
+
+
+	// // 解析返回结果
+	// if (!respon_fmt.ParseFromArray(recv_buf, recv_size))
+	// {
+	// 	controller->SetFailed("parse error! response_str");
+	// 	return;
+	// }
+
+	// std::string respon = respon_fmt.payload();
+
+
+	// if (!response->ParseFromString(respon))
+	// {
+	// 	std::string info = std::format("parse error! response_str:{}", respon);
+	// 	controller->SetFailed(info);
+	// 	return;
+	// }
+}
+
+
+
+
+void Mrpcchannel::CallMethodImpl1(const MethodDescriptor *method, RpcController *controller,
+    const Message *request, Message *response)
+{
+	if (m_clientFd == -1)
+	{
+		std::string errMsg;
+		// 保证连接正常
+		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
+		if (!rt)
+		{
+			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
+			controller->SetFailed(errMsg);
+			return;
+		}
+		else
+		{
+			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
 		}
 	}
 	// 获取服务器和方法名
@@ -90,8 +221,7 @@ void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
 		google::protobuf::io::CodedOutputStream coded_output(&string_output);
 
 		// 最开始区域 变长的 rpc_header 的长度
-		coded_output.WriteVarint32(
-		    static_cast<uint32_t>(rpc_header_str.size()));
+		coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
 
 		// 填写 紧跟的 rpc_header 内容
 		coded_output.WriteString(rpc_header_str);
@@ -111,8 +241,7 @@ void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
 	// }
 
 	// 发送消息
-	while (
-	    -1 == ::send(m_clientFd, send_rpc_str.c_str(), send_rpc_str.size(), 0))
+	while (-1 == ::send(m_clientFd, send_rpc_str.c_str(), send_rpc_str.size(), 0))
 	{
 		std::string info = std::format("send error! errno:{}", errno);
 		std::print("尝试重新连接，对方ip：{}, 对方端口", m_ip, m_port);
@@ -143,8 +272,7 @@ void Mrpcchannel::CallMethodImpl(const MethodDescriptor *method,
 	// 解析返回结果
 	if (!response->ParseFromArray(recv_buf, recv_size))
 	{
-		std::string info =
-		    std::format("parse error! response_str:{}", recv_size);
+		std::string info = std::format("parse error! response_str:{}", recv_size);
 		controller->SetFailed(info);
 		return;
 	}
@@ -208,15 +336,14 @@ MrpcAsyncChannel::MrpcAsyncChannel(std::shared_ptr<Mrpcchannel> transport)
 {
 }
 
-void MrpcAsyncChannel::saveCallee(ControllerPtr controller, MessagePtr request,
-    MessagePtr response, ClosurePtr done)
+void MrpcAsyncChannel::saveCallee(
+    ControllerPtr controller, MessagePtr request, MessagePtr response, ClosurePtr done)
 {
 	if (m_started.load(std::memory_order_acquire))
 	{
 		if (controller != nullptr)
 		{
-			controller->SetFailed(
-			    "cannot replace async RPC arguments after CallMethod()");
+			controller->SetFailed("cannot replace async RPC arguments after CallMethod()");
 		}
 		return;
 	}
@@ -225,25 +352,21 @@ void MrpcAsyncChannel::saveCallee(ControllerPtr controller, MessagePtr request,
 	m_request = std::move(request);
 	m_response = std::move(response);
 	m_done = std::move(done);
-	m_prepared.store(m_controller != nullptr && m_request != nullptr &&
-	                     m_response != nullptr,
+	m_prepared.store(m_controller != nullptr && m_request != nullptr && m_response != nullptr,
 	    std::memory_order_release);
 }
 
-void MrpcAsyncChannel::CallMethod(const MethodDescriptor *method,
-    RpcController *controller, const Message *request, Message *response,
-    Closure *done)
+void MrpcAsyncChannel::CallMethod(const MethodDescriptor *method, RpcController *controller,
+    const Message *request, Message *response, Closure *done)
 {
 	if (!m_prepared.load(std::memory_order_acquire))
 	{
-		fail("saveCallee() must be called before async CallMethod()",
-		    controller);
+		fail("saveCallee() must be called before async CallMethod()", controller);
 		return;
 	}
 
 	if (controller != m_controller.get() || request != m_request.get() ||
-	    response != m_response.get() ||
-	    (done != nullptr && done != m_done.get()))
+	    response != m_response.get() || (done != nullptr && done != m_done.get()))
 	{
 		fail("CallMethod() arguments must match the objects saved by "
 		     "saveCallee()",
@@ -252,19 +375,16 @@ void MrpcAsyncChannel::CallMethod(const MethodDescriptor *method,
 	}
 
 	bool expected = false;
-	if (!m_started.compare_exchange_strong(
-	        expected, true, std::memory_order_acq_rel))
+	if (!m_started.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
 	{
-		controller->SetFailed(
-		    "MrpcAsyncChannel supports only one in-flight RPC call");
+		controller->SetFailed("MrpcAsyncChannel supports only one in-flight RPC call");
 		return;
 	}
 
 	m_scheduler = moczkrin::Scheduler::GetThis();
 	if (m_scheduler == nullptr || moczkrin::IOManager::GetThis() == nullptr)
 	{
-		fail("async CallMethod() must run inside an IOManager Fiber",
-		    controller);
+		fail("async CallMethod() must run inside an IOManager Fiber", controller);
 		return;
 	}
 
@@ -281,8 +401,8 @@ void MrpcAsyncChannel::CallMethod(const MethodDescriptor *method,
 	m_scheduler->scheduleLock(std::function<void()>(
 	    [self, method]()
 	    {
-		    self->m_channel->CallMethod(method, self->m_controller.get(),
-		        self->m_request.get(), self->m_response.get(), nullptr);
+		    self->m_channel->CallMethod(method, self->m_controller.get(), self->m_request.get(),
+		        self->m_response.get(), nullptr);
 		    self->postCompletion();
 	    }));
 }
@@ -306,8 +426,7 @@ void MrpcAsyncChannel::wait()
 	if (moczkrin::Scheduler::GetThis() != m_scheduler ||
 	    moczkrin::Fiber::GetThis() != m_callerFiber)
 	{
-		m_controller->SetFailed(
-		    "wait() must be called by the Fiber that called CallMethod()");
+		m_controller->SetFailed("wait() must be called by the Fiber that called CallMethod()");
 		return;
 	}
 
@@ -318,16 +437,11 @@ void MrpcAsyncChannel::wait()
 	}
 }
 
-bool MrpcAsyncChannel::finished() const
-{
-	return m_finished.load(std::memory_order_acquire);
-}
+bool MrpcAsyncChannel::finished() const { return m_finished.load(std::memory_order_acquire); }
 
-void MrpcAsyncChannel::fail(
-    const std::string &reason, RpcController *fallbackController)
+void MrpcAsyncChannel::fail(const std::string &reason, RpcController *fallbackController)
 {
-	RpcController *target =
-	    m_controller != nullptr ? m_controller.get() : fallbackController;
+	RpcController *target = m_controller != nullptr ? m_controller.get() : fallbackController;
 	if (target != nullptr)
 	{
 		target->SetFailed(reason);
@@ -354,8 +468,7 @@ void MrpcAsyncChannel::postCompletion()
 		    self->m_finished.store(true, std::memory_order_release);
 		    if (self->m_waiting.load(std::memory_order_acquire))
 		    {
-			    self->m_scheduler->scheduleLock(
-			        self->m_callerFiber, self->m_callerThread);
+			    self->m_scheduler->scheduleLock(self->m_callerFiber, self->m_callerThread);
 		    }
 	    }
 	    // )
