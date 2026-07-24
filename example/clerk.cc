@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <print>
+#include <signal.h>
 #include <string>
 #include <thread>
 #include <vector>
@@ -28,9 +29,9 @@ void worker(int threadId, int count, ThreadStat &stat)
 
 		auto value = client.Get(key);
 
-		// // 防止编译器优化
-		// if (!value.empty() && i == -1)
-		// {
+		// 防止编译器优化
+		// if (value.empty() && i == -1)
+		// {}
 		std::print("{}\n", value);
 		// }
 	}
@@ -42,8 +43,9 @@ void worker(int threadId, int count, ThreadStat &stat)
 
 int main()
 {
-	constexpr int threadNum = 1;
-	constexpr int countPerThread = 5000;
+	::signal(SIGPIPE, SIG_IGN);
+	constexpr int threadNum = 100;
+	constexpr int countPerThread = 100;
 
 	std::vector<std::jthread> threads;
 	std::vector<ThreadStat> stats(threadNum);

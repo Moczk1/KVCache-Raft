@@ -81,8 +81,7 @@ void KvServer::ExecutePutOpOnKVDB(Op op)
 	DprintfKVDB();
 }
 
-void KvServer::Get(
-    const raftKVRpcProctoc::GetArgs *args, raftKVRpcProctoc::GetReply *reply)
+void KvServer::Get(const raftKVRpcProctoc::GetArgs *args, raftKVRpcProctoc::GetReply *reply)
 {
 	Op op;
 	op.Operation = "Get";
@@ -154,8 +153,7 @@ void KvServer::Get(
 	}
 	else
 	{ // 未超时
-		if (raftCommitOp.ClientId == op.ClientId &&
-		    raftCommitOp.RequestId == op.RequestId)
+		if (raftCommitOp.ClientId == op.ClientId && raftCommitOp.RequestId == op.RequestId)
 		{
 
 			std::string value;
@@ -186,6 +184,10 @@ void KvServer::Get(
 	waitApplyCh.erase(raftIndex);
 	delete tmp;
 	lock.unlock();
+	std::print("[kvserver][Get-return] server={} clientId={} requestId={} key={} "
+	           "err={} value={} raftIndex={}\n",
+	    m_id, args->clientid(), args->requestid(), args->key(), reply->err(), reply->value(),
+	    raftIndex);
 }
 
 void KvServer::GetCommandFromRaft(ApplyMsg message)
@@ -195,12 +197,11 @@ void KvServer::GetCommandFromRaft(ApplyMsg message)
 
 	if (DEBUG)
 	{
-		std::print(
-		    "{}[KvServer::GetCommandFromRaft - kvserver{}],Got Command --> "
-		    "Index:{},ClientId{}, RequestId{},Opreation {}, Key :{}, Value "
-		    ":{}\n",
-		    GetTime(), m_id, message.CommandIndex, op.ClientId, op.RequestId,
-		    op.Operation, op.Key, op.Value);
+		std::print("{}[KvServer::GetCommandFromRaft - kvserver{}],Got Command --> "
+		           "Index:{},ClientId{}, RequestId{},Opreation {}, Key :{}, Value "
+		           ":{}\n",
+		    GetTime(), m_id, message.CommandIndex, op.ClientId, op.RequestId, op.Operation, op.Key,
+		    op.Value);
 	}
 
 	if (message.CommandIndex <= m_lastSnapShotRaftLogIndex)
@@ -246,8 +247,8 @@ bool KvServer::ifRequestDuplicate(std::string ClientId, int RequestId)
 	return RequestId <= m_last_RequestId[ClientId];
 }
 
-void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
-    raftKVRpcProctoc::PutAppendReply *reply)
+void KvServer::PutAppend(
+    const raftKVRpcProctoc::PutAppendArgs *args, raftKVRpcProctoc::PutAppendReply *reply)
 {
 	Op op;
 	op.Operation = args->op();
@@ -266,12 +267,10 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 	{
 		if (DEBUG)
 		{
-			std::string info = std::format(
-			    "[func -KvServer::PutAppend -kvserver{}]From Client {} "
-			    "(Request {} To Server {} key {}, raftIndex {}, but "
-			    "not leader",
-			    m_id, args->clientid(), args->requestid(), m_id, op.Key,
-			    raftIndex);
+			std::string info = std::format("[func -KvServer::PutAppend -kvserver{}]From Client {} "
+			                               "(Request {} To Server {} key {}, raftIndex {}, but "
+			                               "not leader",
+			    m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
 
 			std::print("{}{}\n", GetTime(), info);
 		}
@@ -282,12 +281,12 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 
 	if (DEBUG)
 	{
-		std::string info = std::format(
-		    "[func -KvServer::PutAppend -kvserver{}]From Client {} (Request "
-		    "{}) "
-		    "To Server {}, key {}, raftIndex {} , but "
-		    "not leader",
-		    m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
+		std::string info =
+		    std::format("[func -KvServer::PutAppend -kvserver{}]From Client {} (Request "
+		                "{}) "
+		                "To Server {}, key {}, raftIndex {} , but "
+		                "not leader",
+		        m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
 		std::print("{}{}\n", GetTime(), info);
 	}
 
@@ -312,8 +311,7 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 			    "[func -KvServer::PutAppend -kvserver{}]TIMEOUT PUTAPPEND !!!! "
 			    "Server {} , get Command <-- Index:{} , "
 			    "ClientId {}, RequestId {}, Opreation {} Key :{}, Value :{}",
-			    m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
-			    op.Key, op.Value);
+			    m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation, op.Key, op.Value);
 			std::print("{}{}\n", GetTime(), info);
 		}
 
@@ -323,6 +321,11 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 		}
 		else
 		{
+			std::print(
+			    "[kvserver][not-leader-return] server={} clientId={} requestId={} op={} key={} "
+			    "err={} raftIndex={}\n",
+			    m_id, args->clientid(), args->requestid(), args->op(), args->key(), reply->err(),
+			    raftIndex);
 			reply->set_err(ErrWrongLeader); // 这里返回这个的目的让clerk重新尝试
 		}
 	}
@@ -336,18 +339,22 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 			    "Command "
 			    "<-- Index:{} , "
 			    "ClientId {}, RequestId {}, Opreation {}, Key :{}, Value :{}",
-			    m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
-			    op.Key, op.Value);
+			    m_id, m_id, raftIndex, op.ClientId, op.RequestId, op.Operation, op.Key, op.Value);
 			std::print("{}{}\n", GetTime(), info);
 		}
 
-		if (raftCommitOp.ClientId == op.ClientId &&
-		    op.RequestId == raftCommitOp.RequestId)
+		if (raftCommitOp.ClientId == op.ClientId && op.RequestId == raftCommitOp.RequestId)
 		{
 			reply->set_err(OK);
 		}
 		else
 		{
+			std::print(
+			    "[kvserver][not-leader-return] server={} clientId={} requestId={} op={} key={} "
+			    "err={} raftIndex={}\n",
+			    m_id, args->clientid(), args->requestid(), args->op(), args->key(), reply->err(),
+			    raftIndex);
+
 			reply->set_err(ErrWrongLeader);
 		}
 	}
@@ -357,6 +364,11 @@ void KvServer::PutAppend(const raftKVRpcProctoc::PutAppendArgs *args,
 	waitApplyCh.erase(raftIndex);
 	delete tmp;
 	lock.unlock();
+	std::print(
+	    "[kvserver][PutAppend-return] server={} clientId={} requestId={} op={} key={} value={} "
+	    "err={} raftIndex={}\n",
+	    m_id, args->clientid(), args->requestid(), args->op(), args->key(), args->value(),
+	    reply->err(), raftIndex);
 }
 
 void KvServer::ReadRaftApplyCommandLoop()
@@ -364,8 +376,7 @@ void KvServer::ReadRaftApplyCommandLoop()
 	while (true)
 	{
 		auto message = applyChan->Pop();
-		std::print("{}::{}-kvserver{}收到了下raft的消息\n", GetTime(),
-		    __FUNCTION__, m_id);
+		std::print("{}::{}-kvserver{}收到了下raft的消息\n", GetTime(), __FUNCTION__, m_id);
 		if (message.CommandValid)
 		{
 			GetCommandFromRaft(message);
@@ -396,8 +407,7 @@ bool KvServer::SendMessageToWaitChan(const Op &op, int raftIndex)
 		                               "raftserver{}] , Send Command "
 		                               "--> Index:{} , ClientId {}, RequestId "
 		                               "{}, Opreation {}, Key :{}, Value :{}",
-		    GetTime(), m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
-		    op.Key, op.Value);
+		    GetTime(), m_id, raftIndex, op.ClientId, op.RequestId, op.Operation, op.Key, op.Value);
 		std::print("{}\n", info);
 	}
 
@@ -410,12 +420,10 @@ bool KvServer::SendMessageToWaitChan(const Op &op, int raftIndex)
 
 	if (false)
 	{
-		std::string info = std::format(
-		    "{}:[RaftApplyMessageSendToWaitChan--> raftserver{}] , Send "
-		    "Command --> Index:{} , ClientId {}, RequestId "
-		    "{}, Opreation {}, Key :{}, Value :{}",
-		    GetTime(), m_id, raftIndex, op.ClientId, op.RequestId, op.Operation,
-		    op.Key, op.Value);
+		std::string info = std::format("{}:[RaftApplyMessageSendToWaitChan--> raftserver{}] , Send "
+		                               "Command --> Index:{} , ClientId {}, RequestId "
+		                               "{}, Opreation {}, Key :{}, Value :{}",
+		    GetTime(), m_id, raftIndex, op.ClientId, op.RequestId, op.Operation, op.Key, op.Value);
 		std::print("{}\n", info);
 	}
 	return true;
@@ -445,8 +453,7 @@ std::string KvServer::MakeSnapShot()
 }
 
 void KvServer::PutAppend(google::protobuf::RpcController *controller,
-    const ::raftKVRpcProctoc::PutAppendArgs *request,
-    ::raftKVRpcProctoc::PutAppendReply *response,
+    const ::raftKVRpcProctoc::PutAppendArgs *request, ::raftKVRpcProctoc::PutAppendReply *response,
     ::google::protobuf::Closure *done)
 {
 	KvServer::PutAppend(request, response);
@@ -454,20 +461,19 @@ void KvServer::PutAppend(google::protobuf::RpcController *controller,
 }
 
 void KvServer::Get(google::protobuf::RpcController *controller,
-    const ::raftKVRpcProctoc::GetArgs *request,
-    ::raftKVRpcProctoc::GetReply *response, ::google::protobuf::Closure *done)
+    const ::raftKVRpcProctoc::GetArgs *request, ::raftKVRpcProctoc::GetReply *response,
+    ::google::protobuf::Closure *done)
 {
 	KvServer::Get(request, response);
 	done->Run();
 }
 
-KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
-    short port, Option options)
+KvServer::KvServer(
+    int me, int maxraftstate, std::string nodeInforFileName, short port, Option options)
     : m_skipList(6), m_id(me), m_maxRaftState(maxraftstate)
 {
 
-	std::shared_ptr<Persister> persister =
-	    std::make_shared<Persister>(me, options);
+	std::shared_ptr<Persister> persister = std::make_shared<Persister>(me, options);
 
 	applyChan = std::make_shared<LockQueue<ApplyMsg>>();
 
@@ -480,15 +486,15 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 		    provider.NotifyService(this);
 		    provider.NotifyService(this->m_raftNode.get());
 		    provider.Run(m_id, port);
+		    std::print("[server-child-start] node={} pid={} port={}\n", m_id, getpid(), port);
 	    });
 	t.detach();
 
 	std::cout << "raftServer node:" << m_id
-	          << " start to sleep to wait all ohter raftnode start!!!!"
-	          << std::endl;
+	          << " start to sleep to wait all ohter raftnode start!!!!" << std::endl;
 	sleep(6);
-	std::cout << "raftServer node:" << m_id
-	          << " wake up!!!! start to connect other raftnode" << std::endl;
+	std::cout << "raftServer node:" << m_id << " wake up!!!! start to connect other raftnode"
+	          << std::endl;
 
 	MrpcConfig config;
 
@@ -522,8 +528,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName,
 		std::string otherNodeIp = ipPort[i].first;
 		short otherNodePort = ipPort[i].second;
 
-		servers.push_back(
-		    std::make_shared<RaftRpcUtil>(otherNodeIp, otherNodePort));
+		servers.push_back(std::make_shared<RaftRpcUtil>(otherNodeIp, otherNodePort));
 		std::print("node:{} 连接 node {} success!\n", m_id, i);
 	}
 	sleep(ipPort.size() - m_id);

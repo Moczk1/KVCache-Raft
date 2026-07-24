@@ -10,14 +10,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-# -------------------------
-# Protobuf
-# -------------------------
 find_package(Protobuf REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization program_options context)
 
 include_directories(
-    ${PROJECT_SOURCE_DIR}/include,
+    ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/proto
     ${PROJECT_SOURCE_DIR}/submodule/coroutine/include
     ${PROJECT_SOURCE_DIR}/submodule/threadpool

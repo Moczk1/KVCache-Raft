@@ -4,6 +4,7 @@
 #include "rpc/mrpccontroller.h"
 #include "rpcheader.pb.h"
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <google/protobuf/io/coded_stream.h>
@@ -13,6 +14,9 @@
 #include <memory>
 #include <mutex>
 #include <print>
+#include <sys/socket.h>
+#include <thread>
+#include <unistd.h>
 #include <utility>
 
 namespace mraft
@@ -41,21 +45,26 @@ MrpcchannelMultiReq::MrpcchannelMultiReq(
 void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method, RpcController *controller,
     const Message *request, Message *response, Closure *done)
 {
+	// if (m_clientFd == -1)
+	// {
+	// 	std::string errMsg;
+	// 	// 保证连接正常
+	// 	bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
+	// 	if (!rt)
+	// 	{
+	// 		std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
+	// 		controller->SetFailed(errMsg);
+	// 		return;
+	// 	}
+	// 	else
+	// 	{
+	// 		std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
+	// 	}
+	// }
 	if (m_clientFd == -1)
 	{
-		std::string errMsg;
-		// 保证连接正常
-		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
-		if (!rt)
-		{
-			std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
-			controller->SetFailed(errMsg);
-			return;
-		}
-		else
-		{
-			std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
-		}
+		controller->SetFailed("raft rpc channel not connected");
+		return;
 	}
 
 	auto requestId = m_nextRequset_id.fetch_add(1, std::memory_order_relaxed);
@@ -129,10 +138,24 @@ void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method, RpcControll
 
 
 	// 投放进 coroutine 队列
-	auto task = [this, wire = std::move(wireString)]()
+	auto task = [this, wire = std::move(wireString), requestId]()
 	{
+		std::string err;
 		std::lock_guard<std::mutex> lock(m_sendMutex);
-		this->sendAll(wire.data(), wire.size(), nullptr);
+		if (!this->sendAll(wire.data(), wire.size(), &err))
+		{
+			std::print("[raft-rpc][send-failed] requestId={} fd={} ip={} port={} err={}\n",
+			    requestId, m_clientFd, m_ip, m_port, err);
+
+			if (m_clientFd != -1)
+			{
+				::shutdown(m_clientFd, SHUT_RDWR);
+				::close(m_clientFd);
+				m_clientFd = -1;
+			}
+
+			failAllPending(err);
+		}
 	};
 	m_sender->scheduleLock(std::move(task), -1);
 }
@@ -142,7 +165,7 @@ bool MrpcchannelMultiReq::sendAll(const char *data, size_t size, std::string *er
 	ssize_t sent = 0;
 	while (sent < size)
 	{
-		ssize_t n = ::send(m_clientFd, data + sent, size - sent, 0);
+		ssize_t n = ::send(m_clientFd, data + sent, size - sent, MSG_NOSIGNAL);
 
 		if (n > 0)
 		{
@@ -234,37 +257,67 @@ void MrpcchannelMultiReq::recvLoop()
 				rt = newConnect(m_ip.c_str(), m_port, &errMsg);
 			}
 			if (!rt)
-				return;
+			{
+				std::print("[raft-rpc][reconnect-failed] fd={} ip={} port={} err={}\n", m_clientFd,
+				    m_ip, m_port, errMsg);
+
+				failAllPending(errMsg);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				continue;
+			}
 		}
 
 		uint32_t frameSize = 0;
 
+		auto closeCurrentFd = [&]()
+		{
+			if (m_clientFd != -1)
+			{
+				::shutdown(m_clientFd, SHUT_RDWR);
+				::close(m_clientFd);
+				m_clientFd = -1;
+			}
+		};
+
+
+
 		if (!recvVarint32(frameSize))
 		{
+
+			std::print("[raft-rpc][recv-frame-size-failed] fd={} ip={} port={} errno={} "
+			           "reason=read frame length failed\n",
+			    m_clientFd, m_ip, m_port, errno);
+
+			closeCurrentFd();
 			failAllPending("connection closed while reading frame length");
-			return;
+
+			continue; // 关键：不要 return
 		}
 
 		if (frameSize == 0 || frameSize > kMaxFrameSize)
 		{
+			closeCurrentFd();
 			failAllPending("invalid response frame size");
-			return;
+			continue;
 		}
 
 		std::string frameBody(frameSize, '\0');
 
 		if (!recvExact(frameBody.data(), frameBody.size()))
 		{
+			closeCurrentFd();
 			failAllPending("connection closed while reading frame body");
-			return;
+			continue;
 		}
 
 		RPC::RpcResponseFrame frame;
 
 		if (!frame.ParseFromString(frameBody))
 		{
-			failAllPending("parse response frame failed");
-			return;
+			closeCurrentFd();
+			failAllPending("parse response failed");
+			continue;
 		}
 
 		completeResponse(frame);
@@ -274,6 +327,31 @@ void MrpcchannelMultiReq::recvLoop()
 void MrpcchannelMultiReq::failAllPending(const std::string &info)
 {
 	std::print("{}\n", info);
+	std::unordered_map<uint64_t, PendingCall> pending;
+
+	{
+		std::lock_guard<std::mutex> lock(m_pendingMutex);
+		pending.swap(m_pendings);
+	}
+
+
+	std::print("[raft-rpc][fail-all-pending] fd={} ip={} port={} pending={} reason={}\n",
+	    m_clientFd, m_ip, m_port, pending.size(), info);
+
+
+	for (auto &[requestId, pending] : pending)
+	{
+		if (pending.controll)
+		{
+			pending.controll->SetFailed(info);
+		}
+
+		if (pending.done)
+		{
+			pending.done->Run();
+		}
+	}
+
 	return;
 }
 void MrpcchannelMultiReq::completeResponse(const RPC::RpcResponseFrame &frame)

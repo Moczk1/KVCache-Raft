@@ -1,6 +1,9 @@
 CompileFlags:
-  Remove: [
-    -fmodules-ts,
-    -fmodule-mapper=*,
-    -fdeps-format=*
-  ]
+  # 引导 clangd 去查询你的 gcc/g++ 编译器路径以获取 <limits> 等标准库头文件
+  Compiler: /usr/bin/g++
+  Add:
+    - "-std=c++23"
+
+Diagnostics:
+  # 关闭 Included header is not used directly 警告
+  UnusedIncludes: None

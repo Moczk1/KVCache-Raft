@@ -54,6 +54,7 @@ class Mrpcchannel : public google::protobuf::RpcChannel
 	Mrpcchannel(const Mrpcchannel &) = delete;
 	Mrpcchannel &operator=(const Mrpcchannel &) = delete;
 
+	std::mutex m_mutex;
 
 	std::atomic<uint64_t> m_request_id{0};
 

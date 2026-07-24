@@ -597,7 +597,7 @@ void raft::leaderHeartBeatTricker()
 	{
 		std::print("[raft]:rf id:{} state:{}\n", m_id,
 		    static_cast<int>(m_state.load(std::memory_order_acquire)));
-			
+
 		while (m_state.load() != leader)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(HEARTBEATTIMEOUT));
@@ -607,70 +607,24 @@ void raft::leaderHeartBeatTricker()
 		std::chrono::duration<unsigned long int, std::milli> suitableSleepTime{};
 		std::chrono::system_clock::time_point wakeTime{};
 
-		/**
-
-		// {
-		// 	std::unique_lock<std::mutex> lock(m_mtx);
-		// 	wakeTime = now();
-		// 	suitableSleepTime =
-		// 	    std::chrono::milliseconds(HEARTBEATTIMEOUT) +
-		// 	    std::chrono::duration_cast<std::chrono::milliseconds>(
-		// 	        m_lastHearBeatTime - wakeTime);
-		// }
-
-		// if (std::chrono::duration_cast<std::chrono::milliseconds>(
-		//         suitableSleepTime)
-		//         .count() > 1)
-		// {
-		// 	// 获取当前时间点
-		// 	auto start = std::chrono::steady_clock::now();
-		// 	std::this_thread::sleep_for(
-		// 	    std::chrono::duration<unsigned long int, std::milli>(
-		// 	        suitableSleepTime));
-		// 	auto end = std::chrono::steady_clock::now();
-
-		// 	std::chrono::duration<double, std::milli> duration = end - start;
-
-		// 	if (this->Debug)
-		// 	{
-		// 		std::cout
-		// 		    << atomicCount
-		// 		    << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
-		// 		    << std::chrono::duration_cast<std::chrono::milliseconds>(
-		// 		           suitableSleepTime)
-		// 		           .count()
-		// 		    << " 毫秒\033[0m" << std::endl;
-
-		// 		std::cout
-		// 		    << atomicCount
-		// 		    << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: "
-		// 		    << duration.count() << std::endl;
-		// 	}
-		// 	atomicCount++;
-		// }
-
-		// if (std::chrono::duration_cast<std::chrono::milliseconds>(
-		//         m_lastHearBeatTime - wakeTime)
-		//         .count() > 1)
-		// 	continue;
-		// doHeartBeat();
-
-		*/
-
 		std::unique_lock<std::mutex> lock(m_mtx);
 
 		suitableSleepTime = std::chrono::milliseconds(HEARTBEATTIMEOUT);
 
 		// 目前暂时没有在 m_state 状态变化的地方实现调用 notify.
-		bool notleading = m_cv_heartbeat.wait_for(
-		    lock, suitableSleepTime, [&] { return m_state.load() != leader; });
+		auto statues = m_cv_heartbeat.wait_for(lock, suitableSleepTime,
+		    [this]() { return m_state.load() != leader || m_replicatePending; });
 
-		if (!notleading)
+		if (m_state.load() != leader)
 		{
-			lock.unlock();
-			doHeartBeat();
+			m_replicatePending = false;
+			continue;
 		}
-		atomicCount.fetch_add(1, std::memory_order_relaxed);
+		m_replicatePending = false;
+
+		lock.unlock();
+
+		doHeartBeat();
 	}
 }
 
@@ -1220,6 +1174,8 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 		{
 			auto log = request->entries(i);
 			// 新log （index）更大 直接添加
+			if (log.logindex() <= m_lastSnapshotIndex)
+				continue;
 			if (log.logindex() > lastLogIndexandTerm[0])
 			{
 				m_logs.push_back(log);
@@ -1250,22 +1206,24 @@ void raft::AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 			} // if
 		} // for
 
-		// 删除后续的日志
-		{
-			int req_last_log_index = 0;
-			if (request->entries_size() != 0)
-			{
-				req_last_log_index = request->entries(request->entries_size() - 1).logindex();
-				if (req_last_log_index < getLastLogIndex())
-				{
-					for (int i = getLastLogIndex(); i >= req_last_log_index + 1; i--)
-					{
-						int offset = i - m_lastSnapshotIndex - 1;
-						m_logs.erase(m_logs.begin() + offset);
-					}
-				}
-			}
-		}
+		// // 删除后续的日志
+		// {
+		// 	int req_last_log_index = 0;
+		// 	if (request->entries_size() != 0)
+		// 	{
+		// 		req_last_log_index = request->entries(request->entries_size() - 1).logindex();
+		// 		if (req_last_log_index < getLastLogIndex())
+		// 		{
+		// 			for (int i = getLastLogIndex(); i >= req_last_log_index + 1; i--)
+		// 			{
+		// 				int offset = i - m_lastSnapshotIndex - 1;
+		// 				m_logs.erase(m_logs.begin() + offset);
+		// 			}
+		// 		}
+		// 	}
+		// }
+
+
 		getLastLogIndexandTerm(lastLogIndexandTerm[0], lastLogIndexandTerm[1]);
 
 		// 保证逻辑正确性
@@ -1427,14 +1385,14 @@ void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
 	{ // leader 的snapshot index 小于自己的snapshot
 	  // 的index 是否需要返回正常的 reply 消息？
 	  // ans: 应该拒绝
-
+		reply->set_term(m_currentTerm);
 		return;
 	}
 
-	if (m_lastSnapshotIndex <= m_commitIndex || m_lastSnapshotIndex <= m_lastApplied)
-	{
-		return;
-	}
+	// if (m_lastSnapshotIndex <= m_commitIndex || m_lastSnapshotIndex <= m_lastApplied)
+	// {
+	// 	return;
+	// }
 
 	int lastindexandterm[2];
 	getLastLogIndexandTerm(lastindexandterm[0], lastindexandterm[1]);
@@ -1682,11 +1640,15 @@ void raft::Start(Op op, int &index, int &term, bool &isLeader)
 	term = logEntry.logterm();
 	isLeader = true;
 
+
+	m_replicatePending = true;
 	lock.unlock();
 
 	// 受到消息后填写 m_logs 后立即执行心跳。
 	// !problem: 多线程下的消息风暴，导致 leader-followers 的状态刷新死机
-	doHeartBeat();
+	// doHeartBeat();
+
+	m_cv_heartbeat.notify_one();
 }
 
 int raft::GetRaftStateSize() { return m_persister->RaftStateSize(); }

@@ -10,8 +10,8 @@ template <typename T> class LockQueue
 	// 多个worker线程都会写日志queue
 	void Push(const T &data)
 	{
-		std::lock_guard<std::mutex> lock(
-		    m_mutex); // 使用lock_gurad，即RAII的思想保证锁正确释放
+		// 使用lock_gurad，即RAII的思想保证锁正确释放
+		std::lock_guard<std::mutex> lock(m_mutex);
 		m_queue.push(data);
 		m_condvariable.notify_one();
 	}
@@ -31,8 +31,7 @@ template <typename T> class LockQueue
 		return data;
 	}
 
-	bool timeOutPop(int timeout,
-	    T *ResData) // 添加一个超时时间参数，默认为 50 毫秒
+	bool timeOutPop(int timeout, T *ResData) // 添加一个超时时间参数，默认为 50 毫秒
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -41,24 +40,37 @@ template <typename T> class LockQueue
 		auto timeout_time = now + std::chrono::milliseconds(timeout);
 
 		// 在超时之前，不断检查队列是否为空
-		while (m_queue.empty())
-		{
-			// 如果已经超时了，就返回一个空对象
-			if (m_condvariable.wait_until(lock, timeout_time) ==
-			    std::cv_status::timeout)
-			{
-				return false;
-			}
-			else
-			{
-				continue;
-			}
-		}
+		// while (m_queue.empty())
+		// {
+		// 	// 如果已经超时了，就返回一个空对象
+		// 	if (m_condvariable.wait_until(lock, timeout_time) ==
+		// 	    std::cv_status::timeout)
+		// 	{
+		// 		return false;
+		// 	}
+		// 	else
+		// 	{
+		// 		continue;
+		// 	}
+		// }
+		// T data = m_queue.front();
+		// 	m_queue.pop();
+		// 	*ResData = data;
+		// 	return true;
 
-		T data = m_queue.front();
-		m_queue.pop();
-		*ResData = data;
-		return true;
+		bool hasElementOnQueue = m_condvariable.wait_until(
+		    lock, timeout_time, [this] -> bool { return m_queue.empty() == false; });
+		if (hasElementOnQueue)
+		{
+			T data = m_queue.front();
+			m_queue.pop();
+			*ResData = data;
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
   private:

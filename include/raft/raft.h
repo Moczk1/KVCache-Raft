@@ -69,6 +69,7 @@ class raft : public raftRpcProctoc::raftRpc
 	std::condition_variable m_cv_lastElection;
 
 	TimePoint m_lastHearBeatTime;
+	bool m_replicatePending = false;
 	std::condition_variable m_cv_heartbeat;
 
 	std::unique_ptr<moczkrin::ThreadPool> m_threadPool;
@@ -78,24 +79,19 @@ class raft : public raftRpcProctoc::raftRpc
 
   public:
 	void init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
-	    std::shared_ptr<Persister> persister,
-	    std::shared_ptr<LockQueue<ApplyMsg>> applyCh);
+	    std::shared_ptr<Persister> persister, std::shared_ptr<LockQueue<ApplyMsg>> applyCh);
 
 	// AE
 	void AppendEntries(google::protobuf::RpcController *controller,
 	    const ::raftRpcProctoc::AppendEntriesArgs *request,
-	    ::raftRpcProctoc::AppendEntriesReply *response,
-	    ::google::protobuf::Closure *done) override;
+	    ::raftRpcProctoc::AppendEntriesReply *response, ::google::protobuf::Closure *done) override;
 	void AppendEntries(const ::raftRpcProctoc::AppendEntriesArgs *request,
 	    ::raftRpcProctoc::AppendEntriesReply *response);
-	bool sendAppendEntries(int,
-	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
-	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>,
-	    std::shared_ptr<int> appendNum);
-	void handleRequestVoteResponse(int peer,
-	    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
-	    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply,
-	    std::shared_ptr<int> votedNum, bool ok);
+	bool sendAppendEntries(int, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs>,
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply>, std::shared_ptr<int> appendNum);
+	void handleRequestVoteResponse(int peer, std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
+	    std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply, std::shared_ptr<int> votedNum,
+	    bool ok);
 
 	void advanceCommitIndex();
 
@@ -116,20 +112,17 @@ class raft : public raftRpcProctoc::raftRpc
 	// vote
 	void RequestVote(google::protobuf::RpcController *controller,
 	    const ::raftRpcProctoc::RequestVoteArgs *request,
-	    ::raftRpcProctoc::RequestVoteReply *response,
-	    ::google::protobuf::Closure *done) override;
+	    ::raftRpcProctoc::RequestVoteReply *response, ::google::protobuf::Closure *done) override;
 
 	void RequestVote(const ::raftRpcProctoc::RequestVoteArgs *request,
 	    ::raftRpcProctoc::RequestVoteReply *response);
 	bool sendRequestVote(int, std::shared_ptr<raftRpcProctoc::RequestVoteArgs>,
-	    std::shared_ptr<raftRpcProctoc::RequestVoteReply>,
-	    std::shared_ptr<int>);
+	    std::shared_ptr<raftRpcProctoc::RequestVoteReply>, std::shared_ptr<int>);
 	void doElection();
 	void electionTimeOutTicker();
-	void handleAppendEntries(int server,
-	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
-	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply,
-	    std::shared_ptr<int> appendNum, bool ok);
+	void handleAppendEntries(int server, std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesReply> reply, std::shared_ptr<int> appendNum,
+	    bool ok);
 
 	// 状态
 	// void leaderUpdateCommitIndex();

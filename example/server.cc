@@ -6,12 +6,51 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <random>
+#include <signal.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 void ShowArgsHelp();
+void onChildExit(int)
+{
+	int status = 0;
+	pid_t pid = 0;
+
+	while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+	{
+		if (WIFSIGNALED(status))
+		{
+			std::print("[server-parent][child-dead] pid={} signal={}\n", pid, WTERMSIG(status));
+		}
+		else if (WIFEXITED(status))
+		{
+			std::print("[server-parent][child-exit] pid={} code={}\n", pid, WEXITSTATUS(status));
+		}
+	}
+}
+#include <cstdlib>
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+
+void onSegv(int sig)
+{
+	void *array[64];
+	int size = backtrace(array, 64);
+
+	std::print("[server-child][segv] signal={} stack_size={}\n", sig, size);
+	backtrace_symbols_fd(array, size, STDERR_FILENO);
+
+	_exit(128 + sig);
+}
+
+
 
 int main(int argc, char **argv)
 {
+	// ::signal(SIGCHLD, onChildExit);
+	::signal(SIGPIPE, SIG_IGN);
+
 	namespace po = boost::program_options;
 	//////////////////////////////////读取命令参数：节点数量、写入raft节点节点信息到哪个文件
 	if (argc < 2)
@@ -24,13 +63,12 @@ int main(int argc, char **argv)
 
 	po::options_description desc("Allowed options");
 
-	desc.add_options()("help,h", "show help message")("log_file,l",
-	    po::value<std::string>(&opt.logFile),
-	    "log file path, default = log.txt")("raftfile,r",
-	    po::value<std::string>(&opt.m_raftFileName), "raftfile file path")(
-	    "snapshot,s", po::value(&opt.m_snapshotFileName), "snapshot file path")(
-	    "nodeNum,n", po::value(&opt.nodeNum), "node number")(
-	    "config,f", po::value(&opt.configFileName), "config file");
+	desc.add_options()("help,h", "show help message")(
+	    "log_file,l", po::value<std::string>(&opt.logFile), "log file path, default = log.txt")(
+	    "raftfile,r", po::value<std::string>(&opt.m_raftFileName), "raftfile file path")(
+	    "snapshot,s", po::value(&opt.m_snapshotFileName), "snapshot file path")("nodeNum,n",
+	    po::value(&opt.nodeNum),
+	    "node number")("config,f", po::value(&opt.configFileName), "config file");
 
 	po::variables_map vm;
 
@@ -73,9 +111,10 @@ int main(int argc, char **argv)
 		{
 			// 如果是子进程
 			// 子进程的代码
+			// ::signal(SIGSEGV, onSegv);
+			// ::signal(SIGPIPE, SIG_IGN);
 
-			auto kvServer =
-			    new mraft::KvServer(i, 500, opt.configFileName, port, opt);
+			auto kvServer = new mraft::KvServer(i, 5000000, opt.configFileName, port, opt);
 			pause(); // 子进程进入等待状态，不会执行 return 语句
 		}
 		else if (pid > 0)
@@ -97,6 +136,5 @@ int main(int argc, char **argv)
 
 void ShowArgsHelp()
 {
-	std::cout << "format: command -n <nodeNum> -f <configFileName>"
-	          << std::endl;
+	std::cout << "format: command -n <nodeNum> -f <configFileName>" << std::endl;
 }

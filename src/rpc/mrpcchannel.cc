@@ -33,6 +33,7 @@ void Mrpcchannel::CallMethod(const MethodDescriptor *method, RpcController *cont
 void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcController *controller,
     const Message *request, Message *response)
 {
+
 	if (m_clientFd == -1)
 	{
 		std::string errMsg;
@@ -53,6 +54,7 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 	const google::protobuf::ServiceDescriptor *sd = method->service();
 	std::string service_name = sd->name();
 	std::string method_name = method->name();
+
 
 	// 获取参数长度
 	uint32_t args_size{};
@@ -90,74 +92,187 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 		cs.WriteString(req_fmt_str);
 	}
 
-	while (-1 == ::send(m_clientFd, wire_str.c_str(), wire_str.size(), 0))
+	// while (-1 == ::send(m_clientFd, wire_str.c_str(), wire_str.size(), 0))
+	// {
+	// 	std::string info = std::format("send error! errno:{}", errno);
+	// 	std::print("尝试重新连接，对方ip：{}, 对方端口", m_ip, m_port);
+	// 	::close(m_clientFd);
+	// 	m_clientFd = -1;
+	// 	std::string errMsg;
+	// 	bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
+	// 	if (!rt)
+	// 	{
+	// 		controller->SetFailed(errMsg);
+	// 		return;
+	// 	}
+	// }
+
+	auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+
+	std::print(
+	    "[rpc-client][send] tid={} fd={} peer={}:{} service={} method={} rpcReqId={} wireSize={}\n",
+	    tid, m_clientFd, m_ip, m_port, service_name, method_name, req_fmt.request_id(),
+	    wire_str.size());
+
+
+
+
+	std::unique_lock<std::mutex> lock(m_mutex);
+	size_t sent = 0;
+	while (sent < wire_str.size())
 	{
-		std::string info = std::format("send error! errno:{}", errno);
-		std::print("尝试重新连接，对方ip：{}, 对方端口", m_ip, m_port);
+		ssize_t n = ::send(m_clientFd, wire_str.data() + sent, wire_str.size() - sent, 0);
+
+		if (n > 0)
+		{
+			sent += n;
+			continue;
+		}
+
+		if (n < 0 && errno == EINTR)
+		{
+			continue;
+		}
+
 		::close(m_clientFd);
 		m_clientFd = -1;
-		std::string errMsg;
-		bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
-		if (!rt)
-		{
-			controller->SetFailed(errMsg);
-			return;
-		}
+
+		std::string errtxt = std::format("send error! errno:{}\n", errno);
+		controller->SetFailed(errtxt);
+		return;
 	}
+
+
 
 	// 接收返回结果
 	char recv_buf[1024] = {0};
 	::memset(recv_buf, 0, sizeof recv_buf);
 	int recv_size = 0;
-	if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0)))
+	// if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0)))
+	// {
+	// 	::close(m_clientFd);
+	// 	m_clientFd = -1;
+	// 	std::string errtxt = std::format("recv error! errno:{}", errno);
+	// 	controller->SetFailed(errtxt);
+	// 	return;
+	// }
+
+	auto recvExact = [this, &service_name, &method_name, &req_fmt](void *buf, size_t size) -> bool
+	{
+		char *data = static_cast<char *>(buf);
+		size_t received = 0;
+
+		while (received < size)
+		{
+			ssize_t n = ::recv(m_clientFd, data + received, size - received, 0);
+
+			if (n > 0)
+			{
+				received += static_cast<size_t>(n);
+				continue;
+			}
+
+			if (n == 0)
+			{
+				std::print("[rpc-client][recv-eof] service={} method={} requestId={} fd={} "
+				           "ip={} port={} need={} got={}\n",
+				    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, size,
+				    received);
+				return false;
+			}
+
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+			{
+				std::print("[rpc-client][recv-timeout] service={} method={} requestId={} fd={} "
+				           "ip={} port={} need={} got={}\n",
+				    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, size,
+				    received);
+				return false;
+			}
+
+
+			std::print("[rpc-client][recv-error] service={} method={} requestId={} fd={} "
+			           "ip={} port={} errno={} need={} got={}\n",
+			    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, errno,
+			    size, received);
+			return false;
+		}
+
+		return true;
+	};
+
+	auto recvVarint32 = [&recvExact](uint32_t &value) -> bool
+	{
+		value = 0;
+
+		for (int shift = 0; shift < 35; shift += 7)
+		{
+			unsigned char byte = 0;
+
+			if (!recvExact(&byte, 1))
+			{
+
+				return false;
+			}
+
+			value |= static_cast<uint32_t>(byte & 0x7f) << shift;
+
+			if ((byte & 0x80) == 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+
+	uint32_t frameSize = 0;
+
+	if (!recvVarint32(frameSize))
+	{
+		std::print("[rpc-client][recv-frame-size-timeout-or-error] service={} method={} "
+		           "requestId={} fd={} ip={} port={}\n",
+		    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port);
+
+		::close(m_clientFd);
+		m_clientFd = -1;
+		controller->SetFailed("recv response timeout or error");
+		return;
+	}
+
+
+	if (frameSize == 0 || frameSize > 16 * 1024 * 1024)
 	{
 		::close(m_clientFd);
 		m_clientFd = -1;
-		std::string errtxt = std::format("recv error! errno:{}", errno);
-		controller->SetFailed(errtxt);
+		controller->SetFailed("invalid response frame size");
 		return;
 	}
 
-	std::string payload_str{};
-	{
-		google::protobuf::io::ArrayInputStream ai(recv_buf, sizeof recv_buf);
-		google::protobuf::io::CodedInputStream cis(&ai);
-		uint64_t size{};
-		cis.ReadVarint64(&size);
-		cis.ReadString(&payload_str, size);
-	}
-	// std::print("payload_str:{}\n", payload_str);
+	std::string frameBody(frameSize, '\0');
 
-	RPC::RpcResponseFrame respon_fmt{};
-	if (!respon_fmt.ParseFromString(payload_str))
+	if (!recvExact(frameBody.data(), frameBody.size()))
 	{
-		controller->SetFailed("payload str parse into respon_fmt failed!");
+		::close(m_clientFd);
+		m_clientFd = -1;
+		controller->SetFailed("recv response frame body failed");
 		return;
 	}
 
-	if(!response->ParseFromString(respon_fmt.payload()))
+	RPC::RpcResponseFrame respon_fmt;
+
+	if (!respon_fmt.ParseFromString(frameBody))
 	{
-		controller->SetFailed("respon_fmt parse into message failed");
+		controller->SetFailed("response frame parse failed");
 		return;
 	}
 
-
-	// // 解析返回结果
-	// if (!respon_fmt.ParseFromArray(recv_buf, recv_size))
-	// {
-	// 	controller->SetFailed("parse error! response_str");
-	// 	return;
-	// }
-
-	// std::string respon = respon_fmt.payload();
-
-
-	// if (!response->ParseFromString(respon))
-	// {
-	// 	std::string info = std::format("parse error! response_str:{}", respon);
-	// 	controller->SetFailed(info);
-	// 	return;
-	// }
+	if (!response->ParseFromString(respon_fmt.payload()))
+	{
+		controller->SetFailed("response payload parse failed");
+		return;
+	}
 }
 
 
@@ -228,17 +343,6 @@ void Mrpcchannel::CallMethodImpl1(const MethodDescriptor *method, RpcController 
 	}
 	// 添加消息参数
 	send_rpc_str += args_str;
-
-	// debug 调试信息
-	// if (DEBUG)
-	// {
-	// 	std::print("================================================\n"
-	// 	           "rpc_header_str:{}\n "
-	// 	           "service_name:{}\n"
-	// 	           "method_name:{}\n"
-	// 	           "args_str:{}\n",
-	// 	    rpc_header_str, service_name, method_name, args_size);
-	// }
 
 	// 发送消息
 	while (-1 == ::send(m_clientFd, send_rpc_str.c_str(), send_rpc_str.size(), 0))
@@ -327,6 +431,16 @@ bool Mrpcchannel::newConnect(const char *ip, uint16_t port, std::string *errMsg)
 		return false;
 	}
 	m_clientFd = clientFd;
+
+	// 同步 socket  timeout
+	timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	setsockopt(m_clientFd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	setsockopt(m_clientFd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+
 	return true;
 }
 

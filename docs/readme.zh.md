@@ -30,3 +30,52 @@ Average latency      : 0.6167 ms/op
 Longest thread time  : 6167 ms
 ====================================
 ```
+
+
+| time | work | problem| 
+| --- | --- | --- | 
+| 7.23 | 完成 cs/s 中的多请求发送 | c/s  | clerk多线程请求的情况下会出现卡死：clerk的某个线程出现不能接受消息 |
+```text
+========== Raft Benchmark ==========
+Threads              : 1
+Requests/thread      : 1000
+Total operations     : 2000
+Elapsed              : 3.503 s
+Throughput           : 570.88 ops/s
+Average latency      : 1.7517 ms/op
+Longest thread time  : 3503 ms
+====================================
+
+```
+
+| time | work | problem| 
+| --- | --- | --- | 
+| 7.24 | 完成 cs/s 中的多请求发送 | c/s clerk正常返回，server 在高并发下出现follower 的错误退出 |
+``` text
+========== Raft Benchmark ==========
+Threads              : 16
+Requests/thread      : 50
+Total operations     : 1600
+Elapsed              : 3.621 s
+Throughput           : 441.83 ops/s
+Average latency      : 2.2633 ms/op
+Longest thread time  : 3619 ms
+====================================
+```
+
+
+
+| time | work | problem| 
+| --- | --- | --- | 
+| 7.24 | 修复上述问题 |
+```text
+========== Raft Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 20000
+Elapsed              : 35.165 s
+Throughput           : 568.75 ops/s
+Average latency      : 1.7583 ms/op
+Longest thread time  : 35159 ms
+====================================
+```
