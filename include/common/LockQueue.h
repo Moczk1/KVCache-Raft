@@ -1,8 +1,10 @@
 #pragma once
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <unistd.h>
+#include <vector>
 
 template <typename T> class LockQueue
 {
@@ -30,6 +32,49 @@ template <typename T> class LockQueue
 		m_queue.pop();
 		return data;
 	}
+
+	void Push(T &&data)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_queue.push(std::move(data));
+		m_condvariable.notify_one();
+	}
+
+
+	bool TryPop(T *resData)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		if (m_queue.empty())
+		{
+			return false;
+		}
+
+		*resData = std::move(m_queue.front());
+		m_queue.pop();
+		return true;
+	}
+
+	size_t TryPopBulk(std::vector<T> *out, size_t maxCount)
+	{
+		if (maxCount == 0)
+		{
+			return 0;
+		}
+
+		std::lock_guard<std::mutex> lock(m_mutex);
+
+		size_t count = 0;
+		while (!m_queue.empty() && count < maxCount)
+		{
+			out->push_back(std::move(m_queue.front()));
+			m_queue.pop();
+			count++;
+		}
+
+		return count;
+	}
+
+
 
 	bool timeOutPop(int timeout, T *ResData) // 添加一个超时时间参数，默认为 50 毫秒
 	{
@@ -62,9 +107,8 @@ template <typename T> class LockQueue
 		    lock, timeout_time, [this] -> bool { return m_queue.empty() == false; });
 		if (hasElementOnQueue)
 		{
-			T data = m_queue.front();
+			*ResData = std::move(m_queue.front());
 			m_queue.pop();
-			*ResData = data;
 			return true;
 		}
 		else

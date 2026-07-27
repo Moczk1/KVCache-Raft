@@ -38,6 +38,7 @@ class raft : public raftRpcProctoc::raftRpc
 	int m_lastLogIndex;
 	int m_lastLogTerm;
 	int m_commitIndex;
+	int m_stableLogIndex;
 
 	int m_lastSnapshotIndex;
 	int m_lastSnapshotTerm;
@@ -129,15 +130,14 @@ class raft : public raftRpcProctoc::raftRpc
 
 	/** 持久化 */
   private:
+	friend class Persister;
 	std::shared_ptr<Persister> m_persister;
+	int m_writedIndex = -1;
+	void persistState();
 
-	inline void persist()
-	{
-		auto data = persistData();
-		m_persister->SaveRaftState(data);
-	}
-	void readPersist(std::string data);
-	std::string persistData();
+	void readPersistLogs();
+	// m_logs persist
+	std::string persistLogs();
 
 	/** 客户端通信 */
   private:
@@ -150,6 +150,7 @@ class raft : public raftRpcProctoc::raftRpc
 
   public:
 	void Start(Op op, int &index, int &term, bool &isLeader);
+	void onLogStable(bool ok, int logIndex);
 	int GetRaftStateSize();
 
   public:
@@ -215,21 +216,9 @@ class raft : public raftRpcProctoc::raftRpc
 	  public:
 		friend class boost::serialization::access;
 
-		template <class T> void serialize(T &ar, const unsigned int version)
-		{
-			ar & m_currentTerm;
-			ar & m_votedFor;
-			ar & m_lastSnapshotIncludeIndex;
-			ar & m_lastSnapshotIncludeTerm;
-			ar & m_logs;
-		}
+		template <class T> void serialize(T &ar, const unsigned int version) { ar & m_logs; }
 
-		int m_currentTerm;
-		int m_votedFor;
-		int m_lastSnapshotIncludeIndex;
-		int m_lastSnapshotIncludeTerm;
 		std::vector<std::string> m_logs;
-		std::unordered_map<std::string, int> umap;
 	};
 };
 

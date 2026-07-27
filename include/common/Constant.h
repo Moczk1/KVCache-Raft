@@ -3,8 +3,8 @@
 
 namespace mraft
 {
-constexpr bool DEBUG = true;
-constexpr bool LOG = true;
+constexpr bool DEBUG = false;
+constexpr bool LOG = false;
 
 constexpr int SCALE = 1; // 缩放倍数，默认单位为 millisecond
 

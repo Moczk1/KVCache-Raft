@@ -201,7 +201,7 @@ int SkipList<K, V>::insert_element(const K key, const V value)
 	// if current node have key equal to searched key, we get it
 	if (current != NULL && current->get_key() == key)
 	{
-		std::cout << "key: " << key << ", exists" << std::endl;
+		// std::cout << "key: " << key << ", exists" << std::endl;
 		_mtx.unlock();
 		return 1;
 	}
@@ -234,8 +234,8 @@ int SkipList<K, V>::insert_element(const K key, const V value)
 			inserted_node->forward[i] = update[i]->forward[i];
 			update[i]->forward[i] = inserted_node;
 		}
-		std::cout << "Successfully inserted key:" << key << ", value:" << value
-		          << std::endl;
+		// std::cout << "Successfully inserted key:" << key << ", value:" << value
+		        //   << std::endl;
 		_element_count++;
 	}
 	_mtx.unlock();
@@ -245,18 +245,18 @@ int SkipList<K, V>::insert_element(const K key, const V value)
 // Display skip list
 template <typename K, typename V> void SkipList<K, V>::display_list()
 {
-	std::cout << "\n*****Skip List*****"
-	          << "\n";
+	// std::cout << "\n*****Skip List*****"
+	        //   << "\n";
 	for (int i = 0; i <= _skip_list_level; i++)
 	{
 		Node<K, V> *node = this->_header->forward[i];
-		std::cout << "Level " << i << ": ";
+		// std::cout << "Level " << i << ": ";
 		while (node != NULL)
 		{
-			std::cout << node->get_key() << ":" << node->get_value() << ";";
+			// std::cout << node->get_key() << ":" << node->get_value() << ";";
 			node = node->forward[i];
 		}
-		std::cout << std::endl;
+		// std::cout << std::endl;
 	}
 }
 
@@ -264,7 +264,7 @@ template <typename K, typename V> void SkipList<K, V>::display_list()
 // Dump data in memory to file
 template <typename K, typename V> std::string SkipList<K, V>::dump_file()
 {
-	// std::cout << "dump_file-----------------" << std::endl;
+	std::cout << "dump_file-----------------" << std::endl;
 	//
 	//
 	// _file_writer.open(STORE_FILE);
@@ -274,7 +274,7 @@ template <typename K, typename V> std::string SkipList<K, V>::dump_file()
 	{
 		dumper.insert(*node);
 		// _file_writer << node->get_key() << ":" << node->get_value() << "\n";
-		// std::cout << node->get_key() << ":" << node->get_value() << ";\n";
+		std::cout << node->get_key() << ":" << node->get_value() << ";\n";
 		node = node->forward[0];
 	}
 	std::stringstream ss;
@@ -301,7 +301,7 @@ void SkipList<K, V>::load_file(const std::string &dumpStr)
 	//     }
 	//     // Define key as int type
 	//     insert_element(stoi(*key), *value);
-	//     std::cout << "key:" << *key << "value:" << *value << std::endl;
+	    // std::cout << "key:" << *key << "value:" << *value << std::endl;
 	// }
 	// delete key;
 	// delete value;
@@ -391,7 +391,7 @@ template <typename K, typename V> void SkipList<K, V>::delete_element(K key)
 			_skip_list_level--;
 		}
 
-		std::cout << "Successfully deleted key " << key << std::endl;
+		// std::cout << "Successfully deleted key " << key << std::endl;
 		delete current;
 		_element_count--;
 	}

@@ -42,7 +42,7 @@ void KvServer::ExecuteAppendOpOnKVDB(Op op)
 	m_last_RequestId[op.ClientId] = op.RequestId;
 	lock.unlock();
 
-	DprintfKVDB();
+	// DprintfKVDB();
 }
 
 void KvServer::ExecuteGetOpOnKVDB(Op op, std::string *value, bool *exist)
@@ -66,7 +66,7 @@ void KvServer::ExecuteGetOpOnKVDB(Op op, std::string *value, bool *exist)
 	{
 	}
 
-	DprintfKVDB();
+	// DprintfKVDB();
 }
 
 void KvServer::ExecutePutOpOnKVDB(Op op)
@@ -184,10 +184,6 @@ void KvServer::Get(const raftKVRpcProctoc::GetArgs *args, raftKVRpcProctoc::GetR
 	waitApplyCh.erase(raftIndex);
 	delete tmp;
 	lock.unlock();
-	std::print("[kvserver][Get-return] server={} clientId={} requestId={} key={} "
-	           "err={} value={} raftIndex={}\n",
-	    m_id, args->clientid(), args->requestid(), args->key(), reply->err(), reply->value(),
-	    raftIndex);
 }
 
 void KvServer::GetCommandFromRaft(ApplyMsg message)
@@ -197,11 +193,11 @@ void KvServer::GetCommandFromRaft(ApplyMsg message)
 
 	if (DEBUG)
 	{
-		std::print("{}[KvServer::GetCommandFromRaft - kvserver{}],Got Command --> "
-		           "Index:{},ClientId{}, RequestId{},Opreation {}, Key :{}, Value "
-		           ":{}\n",
-		    GetTime(), m_id, message.CommandIndex, op.ClientId, op.RequestId, op.Operation, op.Key,
-		    op.Value);
+		// std::print("{}[KvServer::GetCommandFromRaft - kvserver{}],Got Command --> "
+		//            "Index:{},ClientId{}, RequestId{},Opreation {}, Key :{}, Value "
+		//            ":{}\n",
+		//     GetTime(), m_id, message.CommandIndex, op.ClientId, op.RequestId, op.Operation,
+		//     op.Key, op.Value);
 	}
 
 	if (message.CommandIndex <= m_lastSnapShotRaftLogIndex)
@@ -261,18 +257,24 @@ void KvServer::PutAppend(
 	int _ = -1;
 	bool isLeader = false;
 
+
+	auto start = std::chrono::steady_clock::now();
 	m_raftNode->Start(op, raftIndex, _, isLeader);
+	auto end = std::chrono::steady_clock::now();
+
+	std::print("kvserver send putappend spend time:{}\n", end - start);
 
 	if (!isLeader)
 	{
 		if (DEBUG)
 		{
-			std::string info = std::format("[func -KvServer::PutAppend -kvserver{}]From Client {} "
-			                               "(Request {} To Server {} key {}, raftIndex {}, but "
-			                               "not leader",
-			    m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
+			// std::string info = std::format("[func -KvServer::PutAppend -kvserver{}]From Client {}
+			// "
+			//                                "(Request {} To Server {} key {}, raftIndex {}, but "
+			//                                "not leader",
+			//     m_id, args->clientid(), args->requestid(), m_id, op.Key, raftIndex);
 
-			std::print("{}{}\n", GetTime(), info);
+			// std::print("{}{}\n", GetTime(), info);
 		}
 
 		reply->set_err(ErrWrongLeader);
@@ -360,7 +362,14 @@ void KvServer::PutAppend(
 	}
 
 	lock.lock();
+
+	start = std::chrono::steady_clock::now();
+
+
 	auto tmp = waitApplyCh[raftIndex];
+
+	std::print("waitchannel pick elem spend time:{}\n", start - end);
+
 	waitApplyCh.erase(raftIndex);
 	delete tmp;
 	lock.unlock();
@@ -486,7 +495,8 @@ KvServer::KvServer(
 		    provider.NotifyService(this);
 		    provider.NotifyService(this->m_raftNode.get());
 		    provider.Run(m_id, port);
-		    std::print("[server-child-start] node={} pid={} port={}\n", m_id, getpid(), port);
+		    // std::print("[server-child-start] node={} pid={} port={}\n", m_id, getpid(),
+		    // port);
 	    });
 	t.detach();
 

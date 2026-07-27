@@ -45,22 +45,6 @@ MrpcchannelMultiReq::MrpcchannelMultiReq(
 void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method, RpcController *controller,
     const Message *request, Message *response, Closure *done)
 {
-	// if (m_clientFd == -1)
-	// {
-	// 	std::string errMsg;
-	// 	// 保证连接正常
-	// 	bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
-	// 	if (!rt)
-	// 	{
-	// 		std::print("Function:{},重连接ip:{}; port:{}失败\n", __FUNCTION__, m_ip, m_port);
-	// 		controller->SetFailed(errMsg);
-	// 		return;
-	// 	}
-	// 	else
-	// 	{
-	// 		std::print("Function:{},重连接ip:{}; port:{}成功\n", __FUNCTION__, m_ip, m_port);
-	// 	}
-	// }
 	if (m_clientFd == -1)
 	{
 		controller->SetFailed("raft rpc channel not connected");
@@ -144,9 +128,6 @@ void MrpcchannelMultiReq::CallMethod(const MethodDescriptor *method, RpcControll
 		std::lock_guard<std::mutex> lock(m_sendMutex);
 		if (!this->sendAll(wire.data(), wire.size(), &err))
 		{
-			std::print("[raft-rpc][send-failed] requestId={} fd={} ip={} port={} err={}\n",
-			    requestId, m_clientFd, m_ip, m_port, err);
-
 			if (m_clientFd != -1)
 			{
 				::shutdown(m_clientFd, SHUT_RDWR);
@@ -258,11 +239,7 @@ void MrpcchannelMultiReq::recvLoop()
 			}
 			if (!rt)
 			{
-				std::print("[raft-rpc][reconnect-failed] fd={} ip={} port={} err={}\n", m_clientFd,
-				    m_ip, m_port, errMsg);
-
 				failAllPending(errMsg);
-
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				continue;
 			}
@@ -281,14 +258,8 @@ void MrpcchannelMultiReq::recvLoop()
 		};
 
 
-
 		if (!recvVarint32(frameSize))
 		{
-
-			std::print("[raft-rpc][recv-frame-size-failed] fd={} ip={} port={} errno={} "
-			           "reason=read frame length failed\n",
-			    m_clientFd, m_ip, m_port, errno);
-
 			closeCurrentFd();
 			failAllPending("connection closed while reading frame length");
 
@@ -326,18 +297,13 @@ void MrpcchannelMultiReq::recvLoop()
 
 void MrpcchannelMultiReq::failAllPending(const std::string &info)
 {
-	std::print("{}\n", info);
+	// std::print("{}\n", info);
 	std::unordered_map<uint64_t, PendingCall> pending;
 
 	{
 		std::lock_guard<std::mutex> lock(m_pendingMutex);
 		pending.swap(m_pendings);
 	}
-
-
-	std::print("[raft-rpc][fail-all-pending] fd={} ip={} port={} pending={} reason={}\n",
-	    m_clientFd, m_ip, m_port, pending.size(), info);
-
 
 	for (auto &[requestId, pending] : pending)
 	{

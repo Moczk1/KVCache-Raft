@@ -79,3 +79,72 @@ Average latency      : 1.7583 ms/op
 Longest thread time  : 35159 ms
 ====================================
 ```
+
+
+| time | work | problem| 
+| --- | --- | --- | 
+| 7.24 | 对比同步刷盘和异步刷盘的效率 暂时不考虑 logs 的持久化 |
+
+```text
+========== Raft MS_SYNC Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 20000
+Elapsed              : 82.756 s
+Throughput           : 241.67 ops/s
+Average latency      : 4.1378 ms/op
+Longest thread time  : 82750 ms
+====================================
+
+========== Raft MS_ASYNC Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 20000
+Elapsed              : 18.029 s
+Throughput           : 1109.30 ops/s
+Average latency      : 0.9015 ms/op
+Longest thread time  : 18026 ms
+====================================
+```
+
+
+| time | work | problem| 
+| --- | --- | --- | 
+| 7.26 | 考虑 logs 的持久化 |
+```text
+========== Raft Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 20000
+Elapsed              : 97.212 s
+Throughput           : 205.74 ops/s
+Average latency      : 4.8606 ms/op
+Longest thread time  : 97209 ms
+====================================
+```
+```text
+========== Raft Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 20000
+Elapsed              : 3.744 s
+Throughput           : 5342.25 ops/s
+Average latency      : 0.1872 ms/op
+Longest thread time  : 3741 ms
+====================================
+```
+
+
+
+
+```text
+========== Raft Benchmark ==========
+Threads              : 100
+Requests/thread      : 100
+Total operations     : 10000
+Elapsed              : 30.144 s
+Throughput           : 331.74 ops/s
+Average latency      : 3.0144 ms/op
+Longest thread time  : 30142 ms
+====================================
+```

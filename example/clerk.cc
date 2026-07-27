@@ -27,12 +27,12 @@ void worker(int threadId, int count, ThreadStat &stat)
 	{
 		client.Put(key, std::to_string(i));
 
-		auto value = client.Get(key);
+		// auto value = client.Get(key);
 
 		// 防止编译器优化
 		// if (value.empty() && i == -1)
 		// {}
-		std::print("{}\n", value);
+		// std::print("{}\n", value);
 		// }
 	}
 
@@ -65,7 +65,7 @@ int main()
 
 	double totalSeconds = std::chrono::duration<double>(benchEnd - benchStart).count();
 
-	const int totalOps = threadNum * countPerThread * 2;
+	const int totalOps = threadNum * countPerThread * 1;
 
 	double throughput = totalOps / totalSeconds;
 

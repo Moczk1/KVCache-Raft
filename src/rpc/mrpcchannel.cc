@@ -92,31 +92,6 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 		cs.WriteString(req_fmt_str);
 	}
 
-	// while (-1 == ::send(m_clientFd, wire_str.c_str(), wire_str.size(), 0))
-	// {
-	// 	std::string info = std::format("send error! errno:{}", errno);
-	// 	std::print("尝试重新连接，对方ip：{}, 对方端口", m_ip, m_port);
-	// 	::close(m_clientFd);
-	// 	m_clientFd = -1;
-	// 	std::string errMsg;
-	// 	bool rt = newConnect(m_ip.c_str(), m_port, &errMsg);
-	// 	if (!rt)
-	// 	{
-	// 		controller->SetFailed(errMsg);
-	// 		return;
-	// 	}
-	// }
-
-	auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-
-	std::print(
-	    "[rpc-client][send] tid={} fd={} peer={}:{} service={} method={} rpcReqId={} wireSize={}\n",
-	    tid, m_clientFd, m_ip, m_port, service_name, method_name, req_fmt.request_id(),
-	    wire_str.size());
-
-
-
-
 	std::unique_lock<std::mutex> lock(m_mutex);
 	size_t sent = 0;
 	while (sent < wire_str.size())
@@ -148,14 +123,6 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 	char recv_buf[1024] = {0};
 	::memset(recv_buf, 0, sizeof recv_buf);
 	int recv_size = 0;
-	// if (-1 == (recv_size = ::recv(m_clientFd, recv_buf, sizeof recv_buf, 0)))
-	// {
-	// 	::close(m_clientFd);
-	// 	m_clientFd = -1;
-	// 	std::string errtxt = std::format("recv error! errno:{}", errno);
-	// 	controller->SetFailed(errtxt);
-	// 	return;
-	// }
 
 	auto recvExact = [this, &service_name, &method_name, &req_fmt](void *buf, size_t size) -> bool
 	{
@@ -174,27 +141,27 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 
 			if (n == 0)
 			{
-				std::print("[rpc-client][recv-eof] service={} method={} requestId={} fd={} "
-				           "ip={} port={} need={} got={}\n",
-				    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, size,
-				    received);
+				// std::print("[rpc-client][recv-eof] service={} method={} requestId={} fd={} "
+				//            "ip={} port={} need={} got={}\n",
+				//     service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port,
+				//     size, received);
 				return false;
 			}
 
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 			{
-				std::print("[rpc-client][recv-timeout] service={} method={} requestId={} fd={} "
-				           "ip={} port={} need={} got={}\n",
-				    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, size,
-				    received);
+				// std::print("[rpc-client][recv-timeout] service={} method={} requestId={} fd={} "
+				//            "ip={} port={} need={} got={}\n",
+				//     service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port,
+				//     size, received);
 				return false;
 			}
 
 
-			std::print("[rpc-client][recv-error] service={} method={} requestId={} fd={} "
-			           "ip={} port={} errno={} need={} got={}\n",
-			    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port, errno,
-			    size, received);
+			// std::print("[rpc-client][recv-error] service={} method={} requestId={} fd={} "
+			//            "ip={} port={} errno={} need={} got={}\n",
+			//     service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port,
+			//     errno, size, received);
 			return false;
 		}
 
@@ -231,9 +198,9 @@ void Mrpcchannel::CallMethodImplFrame(const MethodDescriptor *method, RpcControl
 
 	if (!recvVarint32(frameSize))
 	{
-		std::print("[rpc-client][recv-frame-size-timeout-or-error] service={} method={} "
-		           "requestId={} fd={} ip={} port={}\n",
-		    service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port);
+		// std::print("[rpc-client][recv-frame-size-timeout-or-error] service={} method={} "
+		//            "requestId={} fd={} ip={} port={}\n",
+		//     service_name, method_name, req_fmt.request_id(), m_clientFd, m_ip, m_port);
 
 		::close(m_clientFd);
 		m_clientFd = -1;

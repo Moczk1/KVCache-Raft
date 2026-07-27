@@ -275,21 +275,7 @@ void RpcProvider::SendRpcResponse(
 		coded.WriteVarint32(static_cast<uint32_t>(frameBody.size()));
 		coded.WriteString(frameBody);
 	}
-
-	const auto payloadSize = responsePayload.size();
-	const auto debug = ctx->response->ShortDebugString();
-	std::print("[rpc-provider][send-response-before] requestId={} service={} method={} "
-	           "type={} payloadSize={} debug=[{}] conn={} connected={}\n",
-	    ctx->requestId, ctx->serviceName, ctx->methodName, ctx->response->GetTypeName(),
-	    payloadSize, debug, conn->name(), conn->connected());
-
-
 	conn->send(wireFrame);
-
-	std::print("[rpc-provider][send-response-after] requestId={} service={} method={} "
-	           "wireSize={} conn={} connected={}\n",
-	    ctx->requestId, ctx->serviceName, ctx->methodName, wireFrame.size(), conn->name(),
-	    conn->connected());
 }
 
 RpcProvider::~RpcProvider()

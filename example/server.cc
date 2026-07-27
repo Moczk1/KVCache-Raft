@@ -20,11 +20,13 @@ void onChildExit(int)
 	{
 		if (WIFSIGNALED(status))
 		{
-			std::print("[server-parent][child-dead] pid={} signal={}\n", pid, WTERMSIG(status));
+			// std::print("[server-parent][child-dead] pid={} signal={}\n", pid,
+			// WTERMSIG(status));
 		}
 		else if (WIFEXITED(status))
 		{
-			std::print("[server-parent][child-exit] pid={} code={}\n", pid, WEXITSTATUS(status));
+			// std::print("[server-parent][child-exit] pid={} code={}\n", pid,
+			// WEXITSTATUS(status));
 		}
 	}
 }
@@ -38,8 +40,6 @@ void onSegv(int sig)
 	void *array[64];
 	int size = backtrace(array, 64);
 
-	std::print("[server-child][segv] signal={} stack_size={}\n", sig, size);
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
 
 	_exit(128 + sig);
 }
