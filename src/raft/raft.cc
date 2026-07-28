@@ -50,9 +50,9 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		this->applyChan = applyCh;
 		m_currentTerm = 0;
 		m_state = follower;
-			m_commitIndex = 0;
-			m_stableLogIndex = 0;
-			m_lastApplied = 0;
+		m_commitIndex = 0;
+		m_stableLogIndex = 0;
+		m_lastApplied = 0;
 		m_logs.clear();
 		for (int i = 0; i < m_peers.size(); i++)
 		{
@@ -72,10 +72,10 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		this->m_voteForId = a.votedFor;
 		this->m_lastSnapshotIndex = a.snapshot_index;
 		this->m_lastSnapshotTerm = a.snapshot_term;
+		this->m_commitIndex = a.commit_index;
 
-
-			readPersistLogs();
-			m_stableLogIndex = getLastLogIndex();
+		readPersistLogs();
+		m_stableLogIndex = getLastLogIndex();
 
 		/** test readPersistLogs()
 
@@ -87,9 +87,13 @@ void raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me,
 		// }
 
 		*/
+		std::print("id:{} term:{}, votedfor:{}, commitIndex:{}, snapshotindex:{}\n", m_id,
+		    m_currentTerm, m_voteForId, m_commitIndex, m_lastSnapshotIndex);
+		std::print("m_id:{} m_logs size:{}\n", m_id, m_logs.size());
 
-		std::print("this m_logs size:{}\n", m_logs.size());
-		// std::print("this m_logs last log index:{}\n", m_logs.back().logindex());
+		if (m_logs.size() != 0)
+			std::print("m_id:{} m_logs last log index:{}\n", m_id, m_logs.back().logindex());
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
 		if (m_lastSnapshotIndex > 0)
@@ -1383,33 +1387,55 @@ void raft::leaderSendSnapShot(int i)
 
 	std::unique_lock<std::mutex> lock(m_mtx);
 
-	raftRpcProctoc::InstallSnapshotRequest args;
-	args.set_leaderid(m_id);
-	args.set_term(m_currentTerm);
-	args.set_lastsnapshotincludeindex(m_lastSnapshotIndex);
-	args.set_lastsnapshotincludeterm(m_lastSnapshotTerm);
-	args.set_data(m_persister->ReadSnapshot());
+	//  args;
+	auto args = std::make_shared<raftRpcProctoc::InstallSnapshotRequest>();
+	args->set_leaderid(m_id);
+	args->set_term(m_currentTerm);
+	args->set_lastsnapshotincludeindex(m_lastSnapshotIndex);
+	args->set_lastsnapshotincludeterm(m_lastSnapshotTerm);
+	args->set_data(m_persister->ReadSnapshot());
 
-	raftRpcProctoc::InstallSnapshotResponse reply;
+	// raftRpcProctoc::InstallSnapshotResponse reply;
+	auto reply = std::make_shared<raftRpcProctoc::InstallSnapshotResponse>();
 	lock.unlock();
 
-	bool ok = m_peers[i]->InstallSnapshot(&args, &reply);
+	// bool ok = m_peers[i]->InstallSnapshot(args.get(), reply.get());
+	// leaderSendSnapShotHandler(ok, args, reply, i);
+	// m_ioManager->scheduleLock(
+	// [peer = m_peers[i], args,
+	//     callback = [this, i, args, votedNum](
+	//                    bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply> reply)
+	//     { handleRequestVoteResponse(i, args, reply, votedNum, ok); }]()
+	// { peer->RequestVoteAsync(args, callback); });
 
-	lock.lock();
+	auto cb = [this, args, i](
+	              bool ok, std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse> reply)
+	{ leaderSendSnapShotHandler(ok, args, reply, i); };
+
+	m_ioManager->scheduleLock([serv = m_peers[i], args, callback = std::move(cb)]()
+	    { serv->InstallSnapshotAsync(args, callback); });
+}
+
+bool raft::leaderSendSnapShotHandler(bool ok,
+    std::shared_ptr<raftRpcProctoc::InstallSnapshotRequest> args,
+    std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse> reply, int i)
+{
+	std::unique_lock<std::mutex> lock(m_mtx);
+
 	if (!ok)
 	{
-		return;
+		return false;
 	}
 
-	if (m_state.load() != leader || m_currentTerm != args.term())
+	if (m_state.load() != leader || m_currentTerm != args->term())
 	{
-		return;
+		return true;
 	}
 
 	// 中途发生 leader 的更改
-	if (reply.term() > m_currentTerm)
+	if (reply->term() > m_currentTerm)
 	{
-		m_currentTerm = reply.term();
+		m_currentTerm = reply->term();
 		m_voteForId = -1;
 		m_state.store(follower);
 
@@ -1419,12 +1445,14 @@ void raft::leaderSendSnapShot(int i)
 		m_lastElectionTime = now();
 		m_cv_lastElection.notify_one();
 
-		return;
+		return true;
 	}
 
-	m_matchIndex[i] = args.lastsnapshotincludeindex();
+	m_matchIndex[i] = args->lastsnapshotincludeindex();
 	m_nextIndex[i] = m_matchIndex[i] + 1;
+	return true;
 }
+
 
 // 远端接收 snapshot 保存到本地的 snapshot
 void raft::InstallSnapshot(const raftRpcProctoc::InstallSnapshotRequest *args,
@@ -1723,8 +1751,8 @@ void raft::Start(Op op, int &index, int &term, bool &isLeader)
 	}
 
 
-	m_persister->AppendLogAsync(logEntry, [this, logIndex](bool ok)
-	    { this->onLogStable(ok, logIndex); });
+	m_persister->AppendLogAsync(
+	    logEntry, [this, logIndex](bool ok) { this->onLogStable(ok, logIndex); });
 
 	isLeader = true;
 

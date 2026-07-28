@@ -75,6 +75,34 @@ bool RaftRpcUtil::RequestVoteAsync(
 	return !controller->Failed();
 }
 
+bool RaftRpcUtil::InstallSnapshotAsync(
+    std::shared_ptr<raftRpcProctoc::InstallSnapshotRequest> args, InstallSnapshotCallback cb)
+{
+	if (moczkrin::IOManager::GetThis() == nullptr)
+	{
+		return false;
+	}
+
+	auto controller = std::make_shared<MrpcController>();
+	auto reply = std::make_shared<raftRpcProctoc::InstallSnapshotResponse>();
+	auto ctx = std::make_shared<MrpcchannelMultiReq::RpcCallLifetime>();
+
+	ctx->controller = controller;
+	ctx->request = args;
+	ctx->response = reply;
+	ctx->done = std::make_shared<FunctionClosure>(
+	    [callback = std::move(cb), controller, reply]()
+	    {
+		    bool ok = !controller->Failed();
+		    callback(ok, reply);
+	    });
+
+	m_channel_MR->registerCall(ctx->controller.get(), ctx);
+
+	m_stub ->InstallSnapshot(ctx->controller.get(), args.get(), reply.get(), ctx->done.get());
+
+	return !controller->Failed();
+}
 // 下面三个方法内部调用 stub 的 raft rpc 方法.
 bool RaftRpcUtil::AppendEntries(
     raftRpcProctoc::AppendEntriesArgs *args, raftRpcProctoc::AppendEntriesReply *response)

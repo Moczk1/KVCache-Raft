@@ -101,6 +101,9 @@ class raft : public raftRpcProctoc::raftRpc
 
 	// snapshot
 	void leaderSendSnapShot(int);
+	bool leaderSendSnapShotHandler(bool ok,
+	    std::shared_ptr<raftRpcProctoc::InstallSnapshotRequest> args,
+	    std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse> response, int i);
 	void InstallSnapshot(const ::raftRpcProctoc::InstallSnapshotRequest *,
 	    ::raftRpcProctoc::InstallSnapshotResponse *);
 	void InstallSnapshot(google::protobuf::RpcController *controller,

@@ -44,8 +44,8 @@ void worker(int threadId, int count, ThreadStat &stat)
 int main()
 {
 	::signal(SIGPIPE, SIG_IGN);
-	constexpr int threadNum = 100;
-	constexpr int countPerThread = 100;
+	constexpr int threadNum = 10;
+	constexpr int countPerThread = 1000;
 
 	std::vector<std::jthread> threads;
 	std::vector<ThreadStat> stats(threadNum);

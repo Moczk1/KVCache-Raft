@@ -23,27 +23,28 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	std::shared_ptr<MrpcchannelMultiReq> m_channel_MR;
 
   public:
-	using AppendEntriesCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::AppendEntriesReply>)>;
-	using RequestVoteCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply>)>;
-	using InstallSnapshotCallback = std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse>)>;
+	using AppendEntriesCallback =
+	    std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::AppendEntriesReply>)>;
+	using RequestVoteCallback =
+	    std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::RequestVoteReply>)>;
+	using InstallSnapshotCallback =
+	    std::function<void(bool ok, std::shared_ptr<raftRpcProctoc::InstallSnapshotResponse>)>;
 
 	/**  Async method */
 	bool AppendEntriesAsync(
-	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args,
-	    AppendEntriesCallback cb);
-	bool RequestVoteAsync(std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args,
-	    RequestVoteCallback cb);
-	// bool InstallSnapshotAsync(
-	//     std::shared_ptr<raftRpcProctoc::InstallSnapshotRequest> args,
-	//     InstallSnapshotCallback cb);
+	    std::shared_ptr<raftRpcProctoc::AppendEntriesArgs> args, AppendEntriesCallback cb);
+	bool RequestVoteAsync(
+	    std::shared_ptr<raftRpcProctoc::RequestVoteArgs> args, RequestVoteCallback cb);
+	bool InstallSnapshotAsync(
+	    std::shared_ptr<raftRpcProctoc::InstallSnapshotRequest> args, InstallSnapshotCallback cb);
 
 	// 下面三个方法内部调用 stub 的 raft rpc 方法.
-	bool AppendEntries(raftRpcProctoc::AppendEntriesArgs *args,
-	    raftRpcProctoc::AppendEntriesReply *response);
+	bool AppendEntries(
+	    raftRpcProctoc::AppendEntriesArgs *args, raftRpcProctoc::AppendEntriesReply *response);
 	bool InstallSnapshot(raftRpcProctoc::InstallSnapshotRequest *args,
 	    raftRpcProctoc::InstallSnapshotResponse *response);
-	bool RequestVote(raftRpcProctoc::RequestVoteArgs *args,
-	    raftRpcProctoc::RequestVoteReply *response);
+	bool RequestVote(
+	    raftRpcProctoc::RequestVoteArgs *args, raftRpcProctoc::RequestVoteReply *response);
 
 	/**
 	 * @brief 创建channel -> 创建 stub -> 完成raftuitl创建
@@ -63,8 +64,7 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	class FunctionClosure final : public google::protobuf::Closure
 	{
 	  public:
-		explicit FunctionClosure(std::function<void()> callback)
-		    : m_callback(std::move(callback))
+		explicit FunctionClosure(std::function<void()> callback) : m_callback(std::move(callback))
 		{
 		}
 
@@ -79,7 +79,5 @@ class RaftRpcUtil : public std::enable_shared_from_this<RaftRpcUtil>
 	  private:
 		std::function<void()> m_callback;
 	};
-
-	
 };
 } // namespace mraft
